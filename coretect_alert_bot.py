@@ -18,12 +18,12 @@ from datetime import datetime
 
 TB_HOST  = "https://monitor.coretect-microgrid.com"
 TB_USER  = "tenant@thingsboard.org"
-TB_PASS  = "HUchenrui180903"
+TB_PASS  = "YOUR_PASSWORD_HERE"
 
-BOT_TOKEN = "8608125106:AAG9AT1g22Uv2yCy95R5DpHfkL9ht38yKBM"
+BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"
 
 CHAT_IDS = [
-    "8921143628",
+    "YOUR_CHAT_ID_HERE",
 ]
 
 # 客户看到的品牌云监控地址（Telegram消息里的链接）
