@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoreTect | Global Energy Control Center</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Noto+Sans+SC:wght@300;400;700&display=swap');
+        
+        html { scroll-behavior: smooth; }
+        body { background-color: #050a16; color: white; font-family: 'Noto Sans SC', 'Inter', sans-serif; margin: 0; overflow-x: hidden; }
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+        .nav-link { color: #94a3b8; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em; transition: color 0.3s; cursor: pointer; }
+        .nav-link:hover, .nav-link.active { color: #10b981; }
+
+        .map-frame { 
+            background-color: rgba(15, 23, 42, 0.4); 
+            background-image: url('map.png'); 
+            background-size: cover; background-position: center; background-repeat: no-repeat;
+            border: 1px solid rgba(30, 41, 59, 0.5); border-radius: 2.5rem; 
+            position: relative; width: 100%; max-width: 1200px; height: 600px; 
+            margin: 0 auto; box-shadow: 0 0 60px rgba(0,0,0,0.8); overflow: hidden; 
+        }
+
+        .dot { 
+            position: absolute; width: 14px; height: 14px; background: #ff4d4d; border-radius: 50%; 
+            cursor: pointer; box-shadow: 0 0 15px #ff4d4d; z-index: 10; transition: all 0.3s;
+        }
+        .dot::after { 
+            content: ''; position: absolute; width: 100%; height: 100%; background: inherit; 
+            border-radius: 50%; animation: pulse 2s infinite; 
+        }
+        @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(3.5); opacity: 0; } }
+        .dot:hover { background: #10b981; box-shadow: 0 0 20px #10b981; z-index: 20; }
+
+        .dot-label { 
+            position: absolute; top: 25px; left: 50%; transform: translateX(-50%) translateY(10px); 
+            background: rgba(5, 10, 22, 0.9); border: 1px solid rgba(16, 185, 129, 0.5); 
+            padding: 6px 14px; border-radius: 6px; font-size: 11px; font-family: 'Orbitron', sans-serif; 
+            white-space: nowrap; color: #10b981; pointer-events: none; 
+            opacity: 0; visibility: hidden; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+        .dot:hover .dot-label { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+
+        /* 所有弹出层层级管理 */
+        .overlay-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #050a16; display: none; overflow-y: auto; z-index: 1000; }
+        .modal-glass { background: rgba(5, 10, 22, 0.95); backdrop-filter: blur(15px); }
+        
+        #business-overlay { z-index: 1000; }
+        #showroom-overlay { z-index: 1500; }
+        #spec-overlay { z-index: 1800; background: rgba(0,0,0,0.95); } 
+        #intake-form-overlay, #quote-form-overlay { z-index: 2000; }
+        #pricing-overlay { z-index: 2200; } 
+        #subscribe-form-overlay { z-index: 2600; } /* 订阅表单最高层级 */
+
+        .business-card { background: rgba(30, 41, 59, 0.3); border: 1px solid rgba(255,255,255,0.05); border-radius: 1.5rem; padding: 2rem; transition: all 0.4s; }
+        .business-card:hover { border-color: #10b981; transform: translateY(-8px); background: rgba(16, 185, 129, 0.05); }
+
+        .product-card { background: linear-gradient(145deg, rgba(30,41,59,0.5) 0%, rgba(15,23,42,0.8) 100%); border: 1px solid rgba(59,130,246,0.2); border-radius: 1rem; overflow: hidden; transition: all 0.3s; }
+        .product-card:hover { border-color: #3b82f6; box-shadow: 0 10px 30px rgba(59,130,246,0.15); transform: translateY(-5px); }
+
+        /* SaaS 定价卡片样式 */
+        .pricing-card { background: linear-gradient(145deg, rgba(15,23,42,0.9) 0%, rgba(5,10,22,0.95) 100%); border: 1px solid rgba(255,255,255,0.1); border-radius: 1.5rem; padding: 2.5rem; transition: all 0.3s; }
+        .pricing-card:hover { transform: translateY(-10px); }
+        .pricing-card.premium { border-color: #3b82f6; box-shadow: 0 0 40px rgba(59,130,246,0.2); relative; }
+
+        footer { border-top: 1px solid rgba(255,255,255,0.05); background: rgba(10, 18, 39, 0.8); }
+        .back-btn:hover i { transform: translateX(-4px); }
+        .lang-toggle { font-family: 'Orbitron', sans-serif; font-size: 10px; color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 4px 10px; border-radius: 4px; cursor: pointer; transition: all 0.3s; }
+        .lang-toggle:hover { background: rgba(16, 185, 129, 0.1); border-color: #10b981; }
+
+        .form-input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 0.75rem 1rem; border-radius: 0.5rem; outline: none; transition: border-color 0.3s; font-family: 'Inter', sans-serif; }
+        .form-input:focus { border-color: #10b981; background: rgba(16,185,129,0.05); }
+        .waiver-box { background: rgba(0,0,0,0.5); border: 1px solid rgba(239, 68, 68, 0.3); padding: 1rem; border-radius: 0.5rem; font-size: 0.75rem; color: #cbd5e1; max-height: 120px; overflow-y: auto; }
+        
+        .step-header { display: flex; justify-content: space-between; margin-bottom: 2rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 1rem; }
+        .step-item { font-family: 'Orbitron', sans-serif; font-size: 0.75rem; color: #64748b; font-weight: bold; }
+        .step-item.active { color: #10b981; }
+        .workflow-step { display: none; animation: fadeIn 0.5s; }
+        .workflow-step.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #10b981; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #059669; }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <nav class="flex justify-between items-center px-12 py-8 relative z-50">
+        <div class="flex items-center space-x-4">
+            <div class="w-12 h-12 bg-[#10b981] rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                <i class="fas fa-bolt text-black text-xl"></i>
+            </div>
+            <div>
+                <div class="font-orbitron font-bold text-2xl leading-none tracking-tighter text-white">CORETECT</div>
+                <div class="text-[10px] text-[#10b981] font-orbitron tracking-[0.3em] uppercase mt-1">Global Technology</div>
+            </div>
+        </div>
+        <div class="flex items-center space-x-12">
+            <a href="#map-section" class="nav-link" data-i18n="nav-solutions">SOLUTIONS</a>
+            <a href="#map-section" class="nav-link" data-i18n="nav-projects">PROJECTS</a>
+            <a href="#" onclick="showPricing(); return false;" class="nav-link text-blue-400" data-i18n="nav-plans">SAAS PLANS</a>
+            <a href="#about-us" class="nav-link active" data-i18n="nav-about">ABOUT US</a>
+            <div class="pl-8 border-l border-white/10 flex items-center space-x-6">
+                <button onclick="toggleLang()" class="lang-toggle" id="langBtn">CN</button>
+                <div class="flex items-center space-x-4">
+                    <span class="font-orbitron text-[10px] text-slate-500 tracking-widest">SYSTEM_v4.2</span>
+                    <div class="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_#10b981]"></div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Section -->
+    <main id="main-content" class="px-12 pt-6 pb-16">
+        
+        <div id="solutions-section" class="max-w-[1200px] mx-auto mb-16 scroll-mt-24">
+            
+            <!-- 🚀 核心重构区：左右绝对垂直居中对齐 (完全符合您的手绘草图) 🚀 -->
+            <div class="flex flex-col lg:flex-row justify-between items-center gap-10 mb-14">
+                <!-- 左侧：标题与简介 -->
+                <div class="text-left flex-1 max-w-3xl">
+                    <h1 class="text-5xl lg:text-6xl font-bold mb-4 font-orbitron tracking-tight text-white" data-i18n="main-title">GLOBAL ENERGY DISPATCH CENTER</h1>
+                    <p class="text-slate-400 text-lg font-light tracking-wide leading-relaxed" data-i18n="main-subtitle">
+                        We are your ultimate microgrid partner. CoreTect empowers global clients through a complete lifecycle loop: supplying inherently safe ESS, enabling 24/7 cloud monitoring and remote intelligent early warning, and reviving battery cells with laboratory-grade reconstruction.
+                    </p>
+                </div>
+
+                <!-- 右侧：按钮组 (垂直排列，整体与左边文字保持中轴线居中) -->
+                <div class="shrink-0 w-full lg:w-auto relative z-20 flex flex-col gap-5">
+                    <button onclick="showPricing()" class="w-full bg-blue-500/10 border border-blue-500/50 px-8 py-4 rounded-3xl flex items-center justify-center space-x-3 hover:bg-blue-500/20 transition-all text-blue-400 font-bold font-orbitron text-base shadow-[0_0_20px_rgba(59,130,246,0.3)]">
+                        <i class="fas fa-crown animate-pulse text-xl"></i> <span data-i18n="btn-view-plans">VIEW SAAS PLANS</span>
+                    </button>
+
+                    <a href="intake.html" target="_blank" class="bg-emerald-500/10 border-2 border-emerald-500/50 px-8 py-5 rounded-3xl flex items-center justify-between lg:justify-start space-x-6 hover:bg-emerald-500/20 hover:scale-105 transition-all group shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+                        <div class="flex items-center space-x-4">
+                            <div class="text-emerald-500 text-4xl group-hover:rotate-12 transition-transform"><i class="fas fa-globe"></i></div>
+                            <div class="text-left">
+                                <p class="text-[10px] text-emerald-400 font-orbitron font-bold tracking-widest mb-1" data-i18n="btn-cloud-sub">GLOBAL GUEST VIEW (NO LOGIN)</p>
+                                <p class="text-xl font-bold text-white" data-i18n="btn-cloud">Cloud Monitoring Center</p>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right text-emerald-500/50 text-2xl ml-2 group-hover:translate-x-2 transition-transform"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- 🚀 7大标签区：加大字体(15px)、加大行距(gap-6)，严格保持两排 🚀 -->
+               <div class="flex flex-col gap-5 mt-2">
+                <!-- 第一排: 强制前4个 -->
+                <div class="flex flex-wrap gap-3">
+                    <div class="flex items-center space-x-2 bg-white/5 border border-white/20 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors shadow-sm">
+                        <i class="fas fa-battery-full text-white text-sm"></i>
+                        <span class="text-white text-sm font-bold tracking-wide whitespace-nowrap" data-i18n="hero-tag1">Top Solid-State ESS Supply</span>
+                    </div>
+                    <div class="flex items-center space-x-2 bg-white/5 border border-white/20 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors shadow-sm">
+                        <i class="fas fa-tools text-white text-sm"></i>
+                        <span class="text-white text-sm font-bold tracking-wide whitespace-nowrap" data-i18n="hero-tag2">Battery PACK Repair & Cell Replacement</span>
+                    </div>
+                    <div class="flex items-center space-x-2 bg-white/5 border border-white/20 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors shadow-sm">
+                        <i class="fas fa-microchip text-white text-sm"></i>
+                        <span class="text-white text-sm font-bold tracking-wide whitespace-nowrap" data-i18n="hero-tag3">BMS Diagnostics & Calibration</span>
+                    </div>
+                    <div class="flex items-center space-x-2 bg-white/5 border border-white/20 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors shadow-sm">
+                        <i class="fas fa-project-diagram text-white text-sm"></i>
+                        <span class="text-white text-sm font-bold tracking-wide whitespace-nowrap" data-i18n="hero-tag4">Inverter & BMS Comm Debugging</span>
+                    </div>
+                </div>
+                <!-- 第二排: 强制后3个 -->
+                <div class="flex flex-wrap gap-3">
+                    <div class="flex items-center space-x-2 bg-white/5 border border-white/20 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors shadow-sm">
+                        <i class="fas fa-cloud-upload-alt text-white text-sm"></i>
+                        <span class="text-white text-sm font-bold tracking-wide whitespace-nowrap" data-i18n="hero-tag5">4G IoT Module & Cloud Integration</span>
+                    </div>
+                    <div class="flex items-center space-x-2 bg-white/5 border border-white/20 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors shadow-sm">
+                        <i class="fas fa-laptop-code text-white text-sm"></i>
+                        <span class="text-white text-sm font-bold tracking-wide whitespace-nowrap" data-i18n="hero-tag6">Testing Equipment Sales</span>
+                    </div>
+                    <div class="flex items-center space-x-2 bg-white/5 border border-white/20 px-4 py-3 rounded-xl hover:bg-white/10 transition-colors shadow-sm">
+                        <i class="fas fa-plug text-white text-sm"></i>
+                        <span class="text-white text-sm font-bold tracking-wide whitespace-nowrap" data-i18n="hero-tag7">Components & Consumables Sales</span>
+                    </div>
+                </div>
+            </div>
+        <!-- ================== 手机 APP 与云端报警生态区 ================== -->
+        <div class="max-w-[1200px] mx-auto mb-20 mt-16 bg-gradient-to-br from-[#0a0f1c] to-[#050a16] border border-blue-500/20 rounded-3xl p-10 relative overflow-hidden shadow-[0_0_40px_rgba(59,130,246,0.1)]">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+            
+            <div class="flex flex-col lg:flex-row items-center gap-12 relative z-10">
+                <!-- 左侧文字介绍 -->
+                <div class="flex-1 text-left">
+                    <div class="inline-flex items-center space-x-2 bg-blue-500/20 px-3 py-1 rounded-full mb-4 border border-blue-500/30">
+                        <div class="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                        <span class="text-blue-400 text-xs font-orbitron font-bold tracking-widest">CORETECT SMART APP</span>
+                    </div>
+                    <h2 class="text-3xl lg:text-4xl font-bold text-white mb-6 font-orbitron" data-i18n="app-title">Pocket Microgrid Control</h2>
+                    <p class="text-slate-400 mb-8 leading-relaxed" data-i18n="app-desc">Stay connected to your energy assets anywhere in the world. Our proprietary 4G IoT module streams live battery data directly to your smartphone, providing military-grade preventive alerts before failures occur.</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="flex items-start space-x-4">
+                            <div class="w-10 h-10 bg-white/5 rounded-lg flex items-center justify-center text-emerald-500 shrink-0 border border-white/10"><i class="fas fa-mobile-alt text-xl"></i></div>
+                            <div>
+                                <h4 class="text-white font-bold text-sm mb-1" data-i18n="app-f1">Mobile APP</h4>
+                                <p class="text-slate-500 text-xs" data-i18n="app-f1-desc">iOS & Android compatible dashboard.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-4">
+                            <div class="w-10 h-10 bg-white/5 rounded-lg flex items-center justify-center text-blue-500 shrink-0 border border-white/10"><i class="fab fa-telegram-plane text-xl"></i></div>
+                            <div>
+                                <h4 class="text-white font-bold text-sm mb-1" data-i18n="app-f2">Telegram/WeChat Alerts</h4>
+                                <p class="text-slate-500 text-xs" data-i18n="app-f2-desc">Instant push notifications for alarms.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-4">
+                            <div class="w-10 h-10 bg-white/5 rounded-lg flex items-center justify-center text-red-500 shrink-0 border border-white/10"><i class="fas fa-thermometer-half text-xl"></i></div>
+                            <div>
+                                <h4 class="text-white font-bold text-sm mb-1" data-i18n="app-f3">Temp Warning</h4>
+                                <p class="text-slate-500 text-xs" data-i18n="app-f3-desc">Thermal runaway predictive alert.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-4">
+                            <div class="w-10 h-10 bg-white/5 rounded-lg flex items-center justify-center text-amber-500 shrink-0 border border-white/10"><i class="fas fa-bolt text-xl"></i></div>
+                            <div>
+                                <h4 class="text-white font-bold text-sm mb-1" data-i18n="app-f4">Voltage Anomaly</h4>
+                                <p class="text-slate-500 text-xs" data-i18n="app-f4-desc">Delta-V and over/under voltage tracking.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-4">
+                            <div class="w-10 h-10 bg-white/5 rounded-lg flex items-center justify-center text-purple-500 shrink-0 border border-white/10"><i class="fas fa-satellite-dish text-xl"></i></div>
+                            <div>
+                                <h4 class="text-white font-bold text-sm mb-1" data-i18n="app-f5">Remote Status</h4>
+                                <p class="text-slate-500 text-xs" data-i18n="app-f5-desc">Real-time SoC & SOH tracking.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-4">
+                            <div class="w-10 h-10 bg-white/5 rounded-lg flex items-center justify-center text-cyan-500 shrink-0 border border-white/10"><i class="fas fa-shield-alt text-xl"></i></div>
+                            <div>
+                                <h4 class="text-white font-bold text-sm mb-1" data-i18n="app-f6">System Fault Action</h4>
+                                <p class="text-slate-500 text-xs" data-i18n="app-f6-desc">Auto-shutdown on critical errors.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧模拟UI界面 -->
+                <div class="w-full lg:w-1/3 shrink-0 flex justify-center">
+                    <div class="relative w-64 h-[500px] bg-black border-[6px] border-slate-800 rounded-[3rem] shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden">
+                        <!-- 手机刘海 -->
+                        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-slate-800 rounded-b-xl z-20"></div>
+                        <!-- APP 内容模拟 -->
+                        <div class="w-full h-full bg-[#0a0f1c] p-5 pt-10 flex flex-col relative z-10">
+                            <div class="flex justify-between items-center mb-6">
+                                <span class="font-orbitron text-emerald-500 font-bold">CORETECT</span>
+                                <i class="fas fa-bell text-red-500 animate-pulse"></i>
+                            </div>
+                            <div class="w-32 h-32 mx-auto rounded-full border-4 border-emerald-500/30 flex items-center justify-center relative mb-6">
+                                <div class="absolute inset-0 rounded-full border-t-4 border-emerald-500 animate-spin" style="animation-duration: 3s;"></div>
+                                <div class="text-center">
+                                    <span class="text-3xl font-bold text-white font-orbitron">82%</span>
+                                    <p class="text-[9px] text-emerald-500">SoC LEVEL</p>
+                                </div>
+                            </div>
+                            <div class="bg-red-500/10 border border-red-500/50 rounded-lg p-3 mb-3">
+                                <div class="flex items-center space-x-2 mb-1">
+                                    <i class="fab fa-telegram text-blue-400"></i>
+                                    <span class="text-[10px] text-red-400 font-bold uppercase">Push Alert Triggered</span>
+                                </div>
+                                <p class="text-white text-xs font-bold">Cell #14 Over-Temp (55°C)</p>
+                            </div>
+                            <div class="bg-white/5 border border-white/10 rounded-lg p-3">
+                                <div class="flex justify-between text-xs mb-2">
+                                    <span class="text-slate-400">Total Voltage</span>
+                                    <span class="text-white font-bold">53.2 V</span>
+                                </div>
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-slate-400">System Status</span>
+                                    <span class="text-emerald-500 font-bold">CHARGING</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================== 地图及服务网络区 ================== -->
+        <div id="map-section" class="scroll-mt-24 pt-10">
+            <!-- 🚀 新增：引导客户选择国家的提示语 🚀 -->
+            <div class="text-center mb-10">
+                <h3 class="text-2xl md:text-3xl font-orbitron font-bold text-emerald-400 tracking-widest animate-pulse" data-i18n="map-prompt">PLEASE SELECT YOUR REGION</h3>
+                <i class="fas fa-chevron-down text-emerald-500/50 mt-4 text-2xl animate-bounce"></i>
+            </div>
+
+            <div class="map-frame">
+                <div class="dot" style="top: 50%; left: 80%;" onclick="openHub('cn')"><div class="dot-label" data-i18n="map-cn">CHINA HQ</div></div>
+                <div class="dot" style="top: 58%; left: 79%;" onclick="openHub('vn')"><div class="dot-label" data-i18n="map-vn">VIETNAM HUB</div></div>
+                <div class="dot" style="top: 60%; left: 81.5%;" onclick="openHub('ph')"><div class="dot-label" data-i18n="map-ph">PHILIPPINES HUB</div></div>
+                
+                <!-- 🚀 优化：极度明显的“已激活”图例 🚀 -->
+                <div class="absolute bottom-8 left-8 flex items-center space-x-3 text-xs font-orbitron text-white bg-black/80 border border-white/20 px-5 py-3 rounded-xl shadow-[0_0_20px_rgba(0,0,0,0.6)] backdrop-blur-sm">
+                    <div class="w-4 h-4 bg-red-500 rounded-full shadow-[0_0_10px_#ef4444] animate-pulse"></div>
+                    <span data-i18n="leg-active" class="font-bold tracking-widest text-slate-200">ACTIVE HUB</span>
+                </div>
+            </div>
+            <div class="max-w-[1200px] mx-auto mt-6 text-center">
+                <p class="text-slate-500 text-sm tracking-wide" data-i18n="main-desc">CoreTect global asset distribution. Red nodes represent active smart operation centers.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Global Footer -->
+    <footer id="about-us" class="py-20 px-12">
+        <div class="max-w-[1200px] mx-auto grid grid-cols-1 md:grid-cols-3 gap-16 mb-12">
+            <div>
+                <h4 class="text-white font-bold mb-6 uppercase text-xs font-orbitron text-emerald-500" data-i18n="foo-hq-label">China Headquarters</h4>
+                <p class="text-slate-200 font-bold mb-3" data-i18n="foo-hq-name">Hunan CoreTect Energy Technology Co., Ltd.</p>
+                <p class="text-slate-500 text-xs" data-i18n="foo-hq-addr">Hunan, China</p>
+            </div>
+            <div>
+                <h4 class="text-white font-bold mb-6 uppercase text-xs font-orbitron text-emerald-500" data-i18n="foo-contact-label">Global Contact</h4>
+                <ul class="text-slate-300 space-y-4 text-sm">
+                    <li><i class="fab fa-whatsapp text-emerald-500 w-5"></i> <span data-i18n="foo-wa">WhatsApp: +86 19073619133</span></li>
+                    <li><i class="fas fa-envelope text-emerald-500 w-5"></i> <a href="mailto:postmaster@coretect-microgrid.com" class="hover:text-emerald-500 transition-colors">postmaster@coretect-microgrid.com</a></li>
+                </ul>
+            </div>
+            <div class="text-right flex flex-col justify-center">
+                <div class="font-orbitron font-bold text-xl text-white">CORETECT</div>
+                <div class="text-[9px] text-emerald-500 font-orbitron">FUTURE ENERGY NOW</div>
+                <p class="text-[10px] font-orbitron text-slate-500 mt-4">© 2026 CORETECT GLOBAL.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ================= 动态业务弹窗 ================= -->
+    <div id="business-overlay" class="overlay-container">
+        <div class="max-w-7xl mx-auto py-12 px-8 relative">
+            <button onclick="closeHub()" class="back-btn flex items-center space-x-4 mb-10 group cursor-pointer text-slate-400 hover:text-white">
+                <i class="fas fa-arrow-left text-xl"></i>
+                <span class="font-orbitron text-xs tracking-widest" data-i18n="mod-back">BACK TO MAP</span>
+            </button>
+
+            <div class="flex justify-between items-center mb-10">
+                <div>
+                    <h2 id="dynamic-hub-title" class="text-5xl font-bold font-orbitron text-white mb-4 tracking-tight" data-i18n="map-ph">PHILIPPINES HUB</h2>
+                    <p class="text-slate-400 text-xl font-light italic" data-i18n="mod-subtitle">Core Energy Service Pillars</p>
+                </div>
+            </div>
+
+            <!-- Card 1: 云平台入口与订阅方案的 2:1 切分 -->
+            <div class="business-card mb-10 border-emerald-500/40 p-12 flex flex-col lg:flex-row items-center bg-emerald-500/5">
+                <div class="flex-1">
+                    <div class="flex items-center space-x-6 mb-6">
+                        <div class="w-16 h-16 bg-emerald-500 rounded-2xl flex items-center justify-center text-black text-3xl shadow-[0_0_20px_#10b981]"><i class="fas fa-satellite-dish"></i></div>
+                        <div>
+                            <h3 class="text-3xl font-bold" data-i18n="c1-t">Remote Monitoring & Maintenance</h3>
+                            <p class="text-sm text-emerald-400 font-orbitron mt-1">SMART INFRASTRUCTURE</p>
+                        </div>
+                    </div>
+                    <p class="text-slate-400 text-lg leading-relaxed max-w-3xl" data-i18n="c1-d">Real-time data collection across the Philippines via CoreTect Global Cloud. Providing 24/7 anomaly alerts and remote maintenance.</p>
+                </div>
+                
+                <div class="mt-10 lg:mt-0 lg:ml-12 flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+                    <!-- 左侧 2/3：进入云监控 -->
+                    <a id="dynamic-cloud-btn" href="intake.html?mode=client" target="_blank" class="w-full sm:w-[60%] px-8 py-5 bg-emerald-500 text-black font-bold rounded-2xl hover:bg-emerald-400 hover:scale-105 transition-all text-center text-lg shadow-[0_10px_30px_rgba(16,185,129,0.3)]">
+                        <i class="fas fa-sign-in-alt mr-2"></i> <span data-i18n="c1-btn">ACCESS CLOUD</span>
+                    </a>
+                    <!-- 右侧 1/3：订阅方案 -->
+                    <button onclick="showPricing()" class="w-full sm:w-[40%] px-6 py-5 bg-blue-600 border border-blue-500 text-white font-bold rounded-2xl hover:bg-blue-500 hover:scale-105 transition-all text-center text-lg shadow-[0_10px_30px_rgba(37,99,235,0.3)]">
+                        <i class="fas fa-shopping-cart mr-2"></i> <span data-i18n="btn-subscribe">SUBSCRIBE</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-20">
+                <div class="business-card border-blue-500/30 relative cursor-pointer hover:bg-blue-500/10" onclick="showShowroom()">
+                    <div class="w-12 h-12 bg-blue-500/20 text-blue-500 rounded-xl flex items-center justify-center mb-6 group-hover:bg-blue-500 group-hover:text-white transition-colors"><i class="fas fa-battery-full text-2xl"></i></div>
+                    <h4 class="text-xl font-bold mb-2" data-i18n="c2-t">ESS Solutions</h4>
+                    <p class="text-slate-400 text-sm leading-relaxed mb-6" data-i18n="c2-d">Solid-state storage systems. Exclusive QingTao partner.</p>
+                    <button class="w-full py-2.5 bg-blue-500/20 hover:bg-blue-500 text-blue-400 hover:text-white font-bold rounded-lg transition-colors border border-blue-500/50">
+                        <i class="fas fa-store mr-2"></i> <span data-i18n="btn-showroom">ENTER SHOWROOM</span>
+                    </button>
+                </div>
+                
+                <div class="business-card border-amber-500/30 relative cursor-pointer hover:bg-emerald-500/10" onclick="showIntakeForm()">
+                    <div class="w-12 h-12 bg-amber-500/20 text-amber-500 rounded-xl flex items-center justify-center mb-6 group-hover:bg-emerald-500 group-hover:text-black transition-colors"><i class="fas fa-microchip text-2xl"></i></div>
+                    <h4 class="text-xl font-bold mb-2" data-i18n="c3-t">Tech Support</h4>
+                    <p class="text-slate-400 text-sm leading-relaxed mb-6" data-i18n="c3-d">Battery cell-level diagnostics, BMS unlocking, and microgrid protocol bridging.</p>
+                    <button class="w-full py-2.5 bg-emerald-500/20 hover:bg-emerald-500 text-emerald-400 hover:text-black font-bold rounded-lg transition-colors border border-emerald-500/50">
+                        <i class="fas fa-wrench mr-2"></i> <span data-i18n="btn-req-repair">REQUEST REPAIR</span>
+                    </button>
+                </div>
+
+                <div class="business-card">
+                    <div class="w-12 h-12 bg-orange-500/20 text-orange-500 rounded-xl flex items-center justify-center mb-8"><i class="fas fa-hdd text-2xl"></i></div>
+                    <h4 class="text-xl font-bold mb-2" data-i18n="c4-t">Testing Equipment</h4>
+                    <p class="text-slate-400 text-sm leading-relaxed" data-i18n="c4-d">Industrial battery testers, grading cabinets & balancing systems.</p>
+                </div>
+                <div class="business-card">
+                    <div class="w-12 h-12 bg-purple-500/20 text-purple-500 rounded-xl flex items-center justify-center mb-8"><i class="fas fa-tools text-2xl"></i></div>
+                    <h4 class="text-xl font-bold mb-2" data-i18n="c5-t">Components</h4>
+                    <p class="text-slate-400 text-sm leading-relaxed" data-i18n="c5-d">Smart BMS, cables, copper bars & core ESS accessories.</p>
+                </div>
+            </div>
+
+            <!-- 🚀 动态地址与电话展示区 🚀 -->
+            <div class="bg-white/5 border border-white/10 rounded-3xl p-12 mb-20">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-16">
+                    <div>
+                        <h5 class="text-emerald-500 font-orbitron font-bold text-sm tracking-[0.3em] mb-8" data-i18n="loc-tag">LOCAL SERVICE HUB</h5>
+                        <p class="text-white text-2xl font-bold mb-4" data-i18n="loc-title">Regional Headquarters</p>
+                        <div class="flex items-start space-x-4 text-slate-400">
+                            <i class="fas fa-map-marker-alt mt-1 text-emerald-500"></i>
+                            <p id="dynamic-hub-addr" class="text-lg leading-relaxed" data-i18n="loc-addr-ph">Unit 7-Ground floor Narra Commercial Buidling 100 M.L Quezon Street. Parang, Marikina</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-col justify-end">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                            <div class="space-y-6">
+                                <div>
+                                    <p class="text-slate-500 text-[10px] font-orbitron tracking-widest mb-2">LOCAL HUB CONTACT</p>
+                                    <div class="flex items-center space-x-3">
+                                        <i class="fas fa-phone-alt text-slate-400 text-xl"></i>
+                                        <p id="dynamic-hub-phone" class="text-white font-bold text-lg">+63 945 572 5265</p>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="text-emerald-500 text-[10px] font-orbitron tracking-widest mb-2">GLOBAL HQ WHATSAPP (CEO)</p>
+                                    <div class="flex items-center space-x-3">
+                                        <i class="fab fa-whatsapp text-emerald-500 text-3xl animate-pulse"></i>
+                                        <p class="text-emerald-400 font-bold text-2xl">+86 19073619133</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex flex-col justify-end">
+                                <p class="text-slate-500 text-[10px] font-orbitron tracking-widest mb-3" data-i18n="loc-email-tag">EMAIL SUPPORT</p>
+                                <a href="mailto:postmaster@coretect-microgrid.com" class="text-white font-bold text-lg underline underline-offset-4 hover:text-emerald-500 transition-colors">postmaster@coretect-microgrid.com</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= ⚡ SaaS 定价表弹窗 (Pricing Overlay) ⚡ ================= -->
+    <div id="pricing-overlay" class="overlay-container modal-glass">
+        <div class="max-w-6xl mx-auto py-16 px-8 relative">
+            <button onclick="hidePricing()" class="absolute top-8 right-12 text-slate-400 hover:text-white text-3xl p-2 cursor-pointer z-50 transition-transform hover:rotate-90"><i class="fas fa-times"></i></button>
+
+            <div class="text-center mb-16 pt-8">
+                <h1 class="text-4xl md:text-5xl font-bold text-white mb-4 font-orbitron tracking-tight" data-i18n="price-title">Cloud SaaS Plans</h1>
+                <p class="text-slate-400 text-lg max-w-2xl mx-auto" data-i18n="price-desc">Scale your energy management with our military-grade cloud infrastructure. Choose the plan that fits your operational needs.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- 基础版: $9.9 -->
+                <div class="pricing-card flex flex-col">
+                    <h3 class="text-xl font-bold text-slate-300 mb-2 font-orbitron" data-i18n="price-t1">BASIC MONITOR</h3>
+                    <p class="text-4xl font-bold text-white mb-6">$9.9<span class="text-sm text-slate-500 font-normal"> /mo</span></p>
+                    <p class="text-sm text-slate-400 mb-8 h-10" data-i18n="price-d1">Standard cloud access for single site owners.</p>
+                    <ul class="space-y-4 mb-8 flex-1">
+                        <li class="flex items-center text-sm text-slate-300"><i class="fas fa-check text-emerald-500 mr-3"></i> <span data-i18n="p1-f1">24/7 Cloud Dashboard Access</span></li>
+                        <li class="flex items-center text-sm text-slate-300"><i class="fas fa-check text-emerald-500 mr-3"></i> <span data-i18n="p1-f2">Real-time SoC & Voltage View</span></li>
+                        <li class="flex items-center text-sm text-slate-300"><i class="fas fa-check text-emerald-500 mr-3"></i> <span data-i18n="p1-f3">Basic App Notifications</span></li>
+                    </ul>
+                    <button onclick="showSubscribeForm('BASIC MONITOR - $9.9/mo')" class="w-full py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl transition-colors border border-white/20" data-i18n="btn-select-plan">SELECT PLAN</button>
+                </div>
+
+                <!-- 高级版: $19.9 -->
+                <div class="pricing-card premium flex flex-col transform scale-105">
+                    <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-xs font-bold px-4 py-1 rounded-full font-orbitron tracking-widest shadow-[0_0_15px_#3b82f6]">MOST POPULAR</div>
+                    <h3 class="text-xl font-bold text-blue-400 mb-2 font-orbitron" data-i18n="price-t2">PRO ALERT +</h3>
+                    <p class="text-4xl font-bold text-white mb-6">$19.9<span class="text-sm text-slate-500 font-normal"> /mo</span></p>
+                    <p class="text-sm text-slate-400 mb-8 h-10" data-i18n="price-d2">Active protection with AI thermal runaway predictions.</p>
+                    <ul class="space-y-4 mb-8 flex-1">
+                        <li class="flex items-center text-sm text-slate-300"><i class="fas fa-check text-blue-400 mr-3"></i> <span data-i18n="p2-f1">Everything in BASIC</span></li>
+                        <li class="flex items-center text-sm text-white font-bold"><i class="fas fa-bolt text-amber-400 mr-3"></i> <span data-i18n="p2-f2">Smart Telegram/WeChat Alerts</span></li>
+                        <li class="flex items-center text-sm text-slate-300"><i class="fas fa-check text-blue-400 mr-3"></i> <span data-i18n="p2-f3">Predictive Temp & Delta-V Warning</span></li>
+                        <li class="flex items-center text-sm text-slate-300"><i class="fas fa-check text-blue-400 mr-3"></i> <span data-i18n="p2-f4">Monthly Battery Health Report</span></li>
+                    </ul>
+                    <button onclick="showSubscribeForm('PRO ALERT+ - $19.9/mo')" class="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-all shadow-[0_10px_20px_rgba(37,99,235,0.4)]" data-i18n="btn-select-plan">SELECT PLAN</button>
+                </div>
+
+                <!-- 企业版: $99.9 -->
+                <div class="pricing-card flex flex-col">
+                    <h3 class="text-xl font-bold text-purple-400 mb-2 font-orbitron" data-i18n="price-t3">ENTERPRISE O&M</h3>
+                    <p class="text-4xl font-bold text-white mb-6">$99.9<span class="text-sm text-slate-500 font-normal"> /mo</span></p>
+                    <p class="text-sm text-slate-400 mb-8 h-10" data-i18n="price-d3">Fully managed Operations & Maintenance for businesses.</p>
+                    <ul class="space-y-4 mb-8 flex-1">
+                        <li class="flex items-center text-sm text-slate-300"><i class="fas fa-check text-purple-400 mr-3"></i> <span data-i18n="p3-f1">Everything in PRO</span></li>
+                        <li class="flex items-center text-sm text-white font-bold"><i class="fas fa-headset text-purple-400 mr-3"></i> <span data-i18n="p3-f2">Dedicated 24/7 Tech Team Monitor</span></li>
+                        <li class="flex items-center text-sm text-slate-300"><i class="fas fa-check text-purple-400 mr-3"></i> <span data-i18n="p3-f3">Remote Fault Shutdown & Reboot</span></li>
+                        <li class="flex items-center text-sm text-slate-300"><i class="fas fa-check text-purple-400 mr-3"></i> <span data-i18n="p3-f4">Free Annual On-site Inspection</span></li>
+                    </ul>
+                    <button onclick="showSubscribeForm('ENTERPRISE O&M - $99.9/mo')" class="w-full py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl transition-colors border border-white/20" data-i18n="btn-select-plan">SELECT PLAN</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+   <!-- ================= ⚡ SaaS 专属订阅表单 (带硬件门槛逻辑) ⚡ ================= -->
+    <div id="subscribe-form-overlay" class="overlay-container modal-glass">
+        <div class="bg-[#0f172a] border border-emerald-500/30 rounded-2xl w-full max-w-xl mx-auto mt-20 p-8 relative shadow-[0_0_50px_rgba(0,0,0,0.9)]">
+            <button onclick="hideSubscribeForm()" class="absolute top-6 right-6 text-slate-400 hover:text-white text-2xl"><i class="fas fa-times"></i></button>
+            
+            <h3 class="text-2xl font-orbitron font-bold text-emerald-400 mb-2" data-i18n="sub-title">Subscribe to SaaS Plan</h3>
+            <p class="text-slate-400 text-sm mb-6" data-i18n="sub-desc">Select your country and submit. Our team will contact you for activation.</p>
+            
+            <form action="https://formspree.io/f/maqvaoqk" method="POST" onsubmit="submitSubscribe(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-orbitron text-slate-400 mb-1" data-i18n="sub-plan">SELECTED PLAN</label>
+                    <input type="text" id="subscribe-plan-name" name="Plan" readonly class="form-input text-emerald-400 font-bold bg-black/50 cursor-not-allowed">
+                </div>
+                <div>
+                    <label class="block text-xs font-orbitron text-slate-400 mb-1" data-i18n="sub-country">COUNTRY / REGION *</label>
+                    <select name="Country" required class="form-input">
+                        <!-- 🚀 修复点：强制加入深色背景 bg-slate-800 🚀 -->
+                        <option value="" disabled selected class="bg-slate-800 text-slate-400">-- Select Regional Hub --</option>
+                        <option value="Philippines" class="bg-slate-800 text-white">PHILIPPINES HUB (菲律宾站)</option>
+                        <option value="Vietnam" class="bg-slate-800 text-white">VIETNAM HUB (越南站)</option>
+                        <option value="China" class="bg-slate-800 text-white">CHINA HQ (中国总部)</option>
+                    </select>
+                </div>
+                
+                <div class="bg-blue-500/10 border border-blue-500/30 p-4 rounded-lg mt-2 mb-4">
+                    <label class="block text-xs font-orbitron text-blue-400 mb-2 font-bold" data-i18n="sub-dtu-title">HARDWARE REQUIREMENT (4G DTU) *</label>
+                    <select name="DTU_Status" required class="form-input border-blue-500/50 text-white" onchange="toggleDtuInput(this.value)">
+                        <!-- 🚀 修复点：强制加入深色背景 bg-slate-800 🚀 -->
+                        <option value="" disabled selected class="bg-slate-800 text-slate-400" data-i18n="sub-dtu-opt0">Do you have our 4G DTU module installed?</option>
+                        <option value="Yes_Has_DTU" class="bg-slate-800 text-white" data-i18n="sub-dtu-opt1">YES, I already have the DTU installed.</option>
+                        <option value="No_Need_DTU" class="bg-slate-800 text-white" data-i18n="sub-dtu-opt2">NO, please include a 4G DTU in my quote.</option>
+                    </select>
+                    <div id="dtu-sn-box" style="display: none;" class="mt-3">
+                        <label class="block text-xs text-slate-400 mb-1" data-i18n="sub-dtu-sn-label">Please enter your DTU Serial Number (SN):</label>
+                        <input type="text" name="DTU_SN" id="dtu-sn-input" class="form-input placeholder-slate-600" placeholder="e.g. SN-88992211">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-orbitron text-slate-400 mb-1" data-i18n="quote-name">NAME / COMPANY *</label>
+                    <input type="text" name="Name" required class="form-input py-2">
+                </div>
+                <div>
+                    <label class="block text-xs font-orbitron text-slate-400 mb-1" data-i18n="quote-contact">WHATSAPP / EMAIL *</label>
+                    <input type="text" name="Contact_Info" required class="form-input py-2">
+                </div>
+                <input type="text" name="_gotcha" style="display:none" />
+                
+                <button type="submit" id="submitBtnSubscribe" class="w-full py-4 mt-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold font-orbitron rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.4)]">
+                    <i class="fas fa-paper-plane mr-2"></i> <span data-i18n="sub-btn">SUBMIT REQUEST</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= ⚡ 清陶固态电池展厅 (Showroom Modal) ⚡ ================= -->
+    <div id="showroom-overlay" class="overlay-container modal-glass">
+        <div class="max-w-7xl mx-auto py-12 px-8 relative">
+            <button onclick="hideShowroom()" class="absolute top-8 right-12 text-slate-400 hover:text-white text-3xl p-2 cursor-pointer z-50 transition-transform hover:rotate-90"><i class="fas fa-times"></i></button>
+
+            <!-- 联合背书区 -->
+            <div class="text-center mb-16 pt-8">
+                <div class="flex justify-center items-center space-x-6 mb-6">
+                    <h2 class="text-4xl font-bold font-orbitron text-emerald-500">CORETECT</h2>
+                    <i class="fas fa-times text-slate-600 text-2xl"></i>
+                    <h2 class="text-4xl font-bold text-blue-500" style="font-family: 'Arial Black', sans-serif;">QINGTAO</h2>
+                </div>
+                <h1 class="text-4xl md:text-5xl font-bold text-white mb-6 tracking-tight" data-i18n="sr-title">The Future of Safe Energy</h1>
+                <p class="text-slate-400 text-lg max-w-3xl mx-auto leading-relaxed" data-i18n="sr-desc">
+                    CoreTect is the authorized global technical partner for QingTao Solid-State Energy Systems. We bring billion-dollar inherently safe semi-solid Li-ion technology to Southeast Asia.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-10 mb-16">
+                <!-- 产品简介 1 -->
+                <div class="product-card flex flex-col h-full">
+                    <div class="h-[280px] w-full bg-[#0a0f1c] flex items-center justify-center relative border-b border-slate-700 overflow-hidden group p-4">
+                        <img id="pro-img-1" src="" alt="安芯户用储能系统" class="w-full h-full object-contain relative z-10 transition-transform duration-500 group-hover:scale-105" onerror="this.style.display='none'">
+                        <div class="absolute top-4 right-4 bg-emerald-500 text-black text-xs font-bold px-3 py-1 rounded z-20 shadow-lg">HOT SALE</div>
+                    </div>
+                    <div class="p-8 flex-1 flex flex-col justify-between">
+                        <div>
+                            <p class="text-emerald-500 text-xs font-orbitron tracking-widest mb-2">RESIDENTIAL / VILLAS</p>
+                            <h3 class="text-2xl font-bold text-white mb-4" data-i18n="sr-p1-t">An-Xin Household ESS</h3>
+                            <ul class="space-y-3 text-slate-300 text-sm mb-6">
+                                <li><i class="fas fa-check text-emerald-500 mr-2"></i> <span data-i18n="sr-p1-l1">Capacity: 5kWh ~ 64kWh</span></li>
+                                <li><i class="fas fa-check text-emerald-500 mr-2"></i> <span data-i18n="sr-p1-l2">Semi-solid LFP: Inherently safe</span></li>
+                                <li><i class="fas fa-check text-emerald-500 mr-2"></i> <span data-i18n="sr-p1-l3">Cycle Life: ≥8000 Times</span></li>
+                            </ul>
+                        </div>
+                        <button onclick="openSpec(1, 'sr-p1-t')" class="block w-full text-center py-3 bg-white/5 border border-white/20 hover:bg-white/10 text-white font-bold rounded-lg transition-colors">
+                            <i class="fas fa-search mr-2"></i> <span data-i18n="sr-btn-spec">VIEW FULL SPECS</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 产品简介 2 -->
+                <div class="product-card flex flex-col h-full">
+                    <div class="h-[280px] w-full bg-[#0a0f1c] flex items-center justify-center relative border-b border-slate-700 overflow-hidden group p-4">
+                        <img id="pro-img-2" src="" alt="磐石小型工商业储能" class="w-full h-full object-contain relative z-10 transition-transform duration-500 group-hover:scale-105" onerror="this.style.display='none'">
+                    </div>
+                    <div class="p-8 flex-1 flex flex-col justify-between">
+                        <div>
+                            <p class="text-blue-400 text-xs font-orbitron tracking-widest mb-2">FARMS & RESORTS</p>
+                            <h3 class="text-2xl font-bold text-white mb-4" data-i18n="sr-p2-t">Small-Scale Pan-Shi C&I ESS</h3>
+                            <ul class="space-y-3 text-slate-300 text-sm mb-6">
+                                <li><i class="fas fa-check text-blue-400 mr-2"></i> <span data-i18n="sr-p2-l1">Capacity: 61kWh ~ 107kWh</span></li>
+                                <li><i class="fas fa-check text-blue-400 mr-2"></i> <span data-i18n="sr-p2-l2">Power: 30kW ~ 50kW Hybrid Inverter</span></li>
+                                <li><i class="fas fa-check text-blue-400 mr-2"></i> <span data-i18n="sr-p2-l3">Built-in Aerosol Fire Extinguishing</span></li>
+                            </ul>
+                        </div>
+                        <button onclick="openSpec(2, 'sr-p2-t')" class="block w-full text-center py-3 bg-white/5 border border-white/20 hover:bg-white/10 text-white font-bold rounded-lg transition-colors">
+                            <i class="fas fa-search mr-2"></i> <span data-i18n="sr-btn-spec">VIEW FULL SPECS</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 产品简介 3 -->
+                <div class="product-card flex flex-col h-full">
+                    <div class="h-[280px] w-full bg-[#0a0f1c] flex items-center justify-center relative border-b border-slate-700 overflow-hidden group p-4">
+                        <img id="pro-img-3" src="" alt="磐石大型工商业储能" class="w-full h-full object-contain relative z-10 transition-transform duration-500 group-hover:scale-105" onerror="this.style.display='none'">
+                    </div>
+                    <div class="p-8 flex-1 flex flex-col justify-between">
+                        <div>
+                            <p class="text-orange-400 text-xs font-orbitron tracking-widest mb-2">COMMERCIAL & INDUSTRIAL</p>
+                            <h3 class="text-2xl font-bold text-white mb-4" data-i18n="sr-p3-t">Pan-Shi C&I ESS</h3>
+                            <ul class="space-y-3 text-slate-300 text-sm mb-6">
+                                <li><i class="fas fa-check text-orange-400 mr-2"></i> <span data-i18n="sr-p3-l1">Capacity: 241kWh ~ 261kWh</span></li>
+                                <li><i class="fas fa-check text-orange-400 mr-2"></i> <span data-i18n="sr-p3-l2">Liquid Cooling Thermal Management</span></li>
+                                <li><i class="fas fa-check text-orange-400 mr-2"></i> <span data-i18n="sr-p3-l3">Expansion of grid station & Microgrid</span></li>
+                            </ul>
+                        </div>
+                        <button onclick="openSpec(3, 'sr-p3-t')" class="block w-full text-center py-3 bg-white/5 border border-white/20 hover:bg-white/10 text-white font-bold rounded-lg transition-colors">
+                            <i class="fas fa-search mr-2"></i> <span data-i18n="sr-btn-spec">VIEW FULL SPECS</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 产品简介 4 -->
+                <div class="product-card flex flex-col h-full">
+                    <div class="h-[280px] w-full bg-[#0a0f1c] flex items-center justify-center relative border-b border-slate-700 overflow-hidden group p-4">
+                        <img id="pro-img-4" src="" alt="UPS备用电源系统" class="w-full h-full object-contain relative z-10 transition-transform duration-500 group-hover:scale-105" onerror="this.style.display='none'">
+                    </div>
+                    <div class="p-8 flex-1 flex flex-col justify-between">
+                        <div>
+                            <p class="text-purple-400 text-xs font-orbitron tracking-widest mb-2">DATA CENTERS / HOSPITALS</p>
+                            <h3 class="text-2xl font-bold text-white mb-4" data-i18n="sr-p4-t">Back-up Power UPS System</h3>
+                            <ul class="space-y-3 text-slate-300 text-sm mb-6">
+                                <li><i class="fas fa-check text-purple-400 mr-2"></i> <span data-i18n="sr-p4-l1">0ms Switching Time</span></li>
+                                <li><i class="fas fa-check text-purple-400 mr-2"></i> <span data-i18n="sr-p4-l2">Voltage: 512V (High Voltage Series)</span></li>
+                                <li><i class="fas fa-check text-purple-400 mr-2"></i> <span data-i18n="sr-p4-l3">Rated Power: 10kVA up to 1200kVA</span></li>
+                            </ul>
+                        </div>
+                        <button onclick="openSpec(4, 'sr-p4-t')" class="block w-full text-center py-3 bg-white/5 border border-white/20 hover:bg-white/10 text-white font-bold rounded-lg transition-colors">
+                            <i class="fas fa-search mr-2"></i> <span data-i18n="sr-btn-spec">VIEW FULL SPECS</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-8 text-center mb-10">
+                <h3 class="text-xl font-bold text-white mb-4" data-i18n="sr-ad-title">Why buy from CoreTect instead of importing directly?</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                    <div><i class="fas fa-shipping-fast text-2xl text-emerald-500 mb-3"></i><p class="text-white font-bold text-sm" data-i18n="sr-ad-1">Local Stock in Manila, Zero Customs Hassle.</p></div>
+                    <div><i class="fas fa-shield-alt text-2xl text-emerald-500 mb-3"></i><p class="text-white font-bold text-sm" data-i18n="sr-ad-2">Local Lab-Grade Warranty & Repair.</p></div>
+                    <div><i class="fas fa-network-wired text-2xl text-emerald-500 mb-3"></i><p class="text-white font-bold text-sm" data-i18n="sr-ad-3">Seamless Inverter Protocol Integration.</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= ⚡ 详细参数弹窗 ================= -->
+    <div id="spec-overlay" class="overlay-container modal-glass">
+        <div class="w-[95vw] max-w-7xl mx-auto py-8 px-4 sm:px-8 relative">
+            <button onclick="closeSpec()" class="absolute top-4 right-4 sm:top-8 sm:right-8 text-slate-400 hover:text-white text-4xl p-2 cursor-pointer z-50 transition-transform hover:rotate-90"><i class="fas fa-times"></i></button>
+            
+            <h2 id="spec-title" class="text-2xl sm:text-3xl font-bold font-orbitron text-emerald-400 mb-4 text-center tracking-wide">Product Specs</h2>
+            
+            <div class="text-center text-slate-400 text-sm mb-4 flex justify-center items-center space-x-2 animate-pulse">
+                <i class="fas fa-search-plus text-emerald-500 text-lg"></i>
+                <span data-i18n="spec-zoom-hint" class="font-bold">Click image to Zoom In / Out. Scroll to view details.</span>
+            </div>
+
+            <div id="spec-img-container" class="bg-[#050a16] rounded-xl overflow-auto border border-emerald-500/30 mb-8 shadow-[0_0_40px_rgba(16,185,129,0.15)] relative h-[70vh] custom-scrollbar w-full" style="cursor: zoom-in;" onclick="toggleZoom()">
+                <img id="spec-img" src="" class="w-full h-auto origin-top-left transition-all duration-300" onerror="this.style.display='none'">
+            </div>
+
+            <button onclick="showQuoteForm()" class="block w-full max-w-md mx-auto text-center py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-bold font-orbitron rounded-xl transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+                <i class="fas fa-envelope mr-2"></i> <span data-i18n="sr-btn-quote">REQUEST QUOTE</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ================= ⚡ 询价专属表单 ================= -->
+    <div id="quote-form-overlay" class="overlay-container modal-glass" style="z-index: 2500;">
+        <div class="bg-[#0f172a] border border-blue-500/30 rounded-2xl w-full max-w-xl mx-auto mt-20 p-8 relative shadow-[0_0_50px_rgba(0,0,0,0.9)]">
+            <button onclick="hideQuoteForm()" class="absolute top-6 right-6 text-slate-400 hover:text-white text-2xl"><i class="fas fa-times"></i></button>
+            <h3 class="text-2xl font-orbitron font-bold text-blue-400 mb-2" data-i18n="quote-title">Request Wholesale Quote</h3>
+            <p class="text-slate-400 text-sm mb-6" data-i18n="quote-desc">Leave your info. Our sales team will email you the distributor pricing.</p>
+            <form action="https://formspree.io/f/maqvaoqk" method="POST" onsubmit="submitQuote(event)" class="space-y-5">
+                <input type="hidden" id="quote-product-name" name="Interested_Product" value="">
+                <div><label class="block text-xs font-orbitron text-slate-400 mb-2" data-i18n="quote-name">NAME / COMPANY *</label><input type="text" name="Name" required class="form-input"></div>
+                <div><label class="block text-xs font-orbitron text-slate-400 mb-2" data-i18n="quote-contact">WHATSAPP / EMAIL *</label><input type="text" name="Contact_Info" required class="form-input"></div>
+                <div><label class="block text-xs font-orbitron text-slate-400 mb-2" data-i18n="quote-msg">ORDER QUANTITY & MESSAGE *</label><textarea name="Message" rows="3" required class="form-input"></textarea></div>
+                <input type="text" name="_gotcha" style="display:none" />
+                <button type="submit" id="submitBtnQuote" class="w-full py-4 mt-4 bg-blue-500 hover:bg-blue-400 text-white font-bold font-orbitron rounded-xl transition-all shadow-[0_0_15px_rgba(59,130,246,0.4)]">
+                    <i class="fas fa-paper-plane mr-2"></i> <span data-i18n="quote-btn">SEND INQUIRY</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= ⚡ 5步维修表单 ================= -->
+    <div id="intake-form-overlay" class="overlay-container modal-glass" style="display: none;">
+        <div class="bg-[#0f172a] border border-emerald-500/30 rounded-2xl w-full max-w-3xl mx-auto mt-12 mb-12 p-8 relative shadow-[0_0_50px_rgba(0,0,0,0.9)]">
+            <button onclick="hideIntakeForm()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-2xl p-2 cursor-pointer z-50"><i class="fas fa-times"></i></button>
+
+            <div class="step-header pr-8">
+                <div id="nav-step1" class="step-item active">1. INTAKE</div>
+                <div id="nav-step2" class="step-item">2. DIAGNOSTIC</div>
+                <div id="nav-step3" class="step-item">3. QUOTE</div>
+                <div id="nav-step4" class="step-item">4. QC</div>
+                <div id="nav-step5" class="step-item">5. HANDOVER</div>
+            </div>
+
+            <div id="step1" class="workflow-step active">
+                <h3 class="text-2xl font-orbitron font-bold text-emerald-400 mb-2" data-i18n="form-title">Diagnostic & Repair Intake</h3>
+                <p class="text-slate-400 text-sm mb-6" data-i18n="form-subtitle">Submit your battery details. Our lab will contact you shortly.</p>
+                <form action="https://formspree.io/f/maqvaoqk" method="POST" onsubmit="submitStep1(event)" class="space-y-5">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div><label class="block text-xs font-orbitron text-slate-400 mb-2" data-i18n="form-name">NAME / COMPANY *</label><input type="text" name="Name" required class="form-input"></div>
+                        <div><label class="block text-xs font-orbitron text-slate-400 mb-2" data-i18n="form-wa">WHATSAPP NUMBER *</label><input type="text" name="WhatsApp" required class="form-input"></div>
+                    </div>
+                    <div><label class="block text-xs font-orbitron text-slate-400 mb-2" data-i18n="form-batt">BATTERY SPECS (Voltage & Ah) *</label><input type="text" name="Battery_Specs" required class="form-input"></div>
+                    <div><label class="block text-xs font-orbitron text-slate-400 mb-2" data-i18n="form-desc">FAULT DESCRIPTION *</label><textarea name="Fault_Description" rows="2" required class="form-input"></textarea></div>
+                    
+                    <div>
+                        <label class="block text-xs font-orbitron text-red-400 mb-2" data-i18n="form-waiver-title">LIABILITY WAIVER *</label>
+                        <div class="waiver-box mb-3">
+                            <p data-i18n="form-waiver-text">By submitting this form and bringing your equipment to our local partner facility, you agree to the following:<br><br>1. <b>Diagnostic Risks:</b> Lithium batteries carry inherent risks of thermal runaway. CoreTect and its local operating partner are strictly NOT liable for any pre-existing internal short circuits, sudden fires, or hardware failures discovered during the diagnostic or repair process.<br>2. <b>Data & Settings:</b> We are not responsible for inverter parameter resets or data loss.<br>3. <b>Abandonment:</b> Any equipment left unclaimed for 30 days after diagnostic/repair will be considered abandoned and disposed of to cover storage costs.</p>
+                        </div>
+                        <label class="flex items-center space-x-3 cursor-pointer">
+                            <input type="checkbox" required class="w-5 h-5 accent-emerald-500">
+                            <span class="text-sm text-slate-300 font-bold" data-i18n="form-agree">I read and accept the Liability Waiver.</span>
+                        </label>
+                    </div>
+                    <input type="text" name="_gotcha" style="display:none" />
+                    <button type="submit" id="submitBtn1" class="w-full py-4 mt-4 bg-emerald-500 hover:bg-emerald-400 text-black font-bold font-orbitron rounded-xl transition-all"><i class="fas fa-paper-plane mr-2"></i> <span data-i18n="form-submit">SUBMIT TO LAB</span></button>
+                </form>
+            </div>
+
+            <!-- STEP 2-5 -->
+            <div id="step2" class="workflow-step">
+                <h3 class="text-2xl font-orbitron font-bold text-amber-400 mb-2" data-i18n="step2-title">2. Internal Diagnostic</h3>
+                <p class="text-slate-400 text-sm mb-6 uppercase tracking-widest bg-amber-500/20 text-amber-500 inline-block px-3 py-1 rounded" data-i18n="step2-tag">STAFF ONLY</p>
+                <div class="space-y-4">
+                    <div><label class="block text-xs text-slate-400 mb-1" data-i18n="step2-tv">Total Voltage</label><input type="text" class="form-input" placeholder="e.g. 51.2V"></div>
+                    <div><label class="block text-xs text-slate-400 mb-1" data-i18n="step2-bc">Bad Cells Identified</label><input type="text" class="form-input"></div>
+                    <div><label class="block text-xs text-slate-400 mb-1" data-i18n="step2-bms">BMS Status</label><select class="form-input"><option>Locked (Error 04)</option><option>Burnt</option><option>Normal</option></select></div>
+                    <button onclick="goToStep(3)" class="w-full py-3 mt-4 bg-amber-500 text-black font-bold rounded-xl" data-i18n="step2-btn">NEXT: QUOTATION</button>
+                </div>
+            </div>
+
+            <div id="step3" class="workflow-step">
+                <h3 class="text-2xl font-orbitron font-bold text-blue-400 mb-2" data-i18n="step3-title">3. Official Quotation</h3>
+                <div class="space-y-4 border border-blue-500/30 p-4 rounded-xl bg-blue-500/5">
+                    <label class="flex items-center space-x-3 text-slate-200"><input type="radio" name="quote" class="w-4 h-4"><span data-i18n="step3-opta"><b>Option A:</b> Software Unlock & Balance</span></label>
+                    <label class="flex items-center space-x-3 text-slate-200"><input type="radio" name="quote" class="w-4 h-4"><span data-i18n="step3-optb"><b>Option B:</b> Cell Replacement + Smart BMS</span></label>
+                    <label class="flex items-center space-x-3 text-slate-200"><input type="radio" name="quote" class="w-4 h-4"><span data-i18n="step3-optc"><b>Option C:</b> Add Fire Suppressor</span></label>
+                    <div class="mt-4"><label class="block text-xs text-slate-400" data-i18n="step3-total">Total Amount:</label><input type="number" class="form-input text-xl text-emerald-400 font-bold" placeholder="0.00"></div>
+                </div>
+                <button onclick="goToStep(4)" class="w-full py-3 mt-4 bg-blue-500 text-white font-bold rounded-xl" data-i18n="step3-btn">NEXT: QC & WORK ORDER</button>
+            </div>
+
+            <div id="step4" class="workflow-step">
+                <h3 class="text-2xl font-orbitron font-bold text-purple-400 mb-2" data-i18n="step4-title">4. Quality Control (QC)</h3>
+                <div class="space-y-3">
+                    <label class="flex items-center space-x-3 text-slate-300"><input type="checkbox" class="w-5 h-5"><span data-i18n="step4-chk1">Old cells removed safely</span></label>
+                    <label class="flex items-center space-x-3 text-slate-300"><input type="checkbox" class="w-5 h-5"><span data-i18n="step4-chk2">Kapton tape applied</span></label>
+                    <label class="flex items-center space-x-3 text-slate-300"><input type="checkbox" class="w-5 h-5"><span data-i18n="step4-chk3">BMS flashed & parameters set</span></label>
+                    <label class="flex items-center space-x-3 text-slate-300"><input type="checkbox" class="w-5 h-5"><span data-i18n="step4-chk4">100V Aging Test Passed</span></label>
+                </div>
+                <button onclick="goToStep(5)" class="w-full py-3 mt-6 bg-purple-500 text-white font-bold rounded-xl" data-i18n="step4-btn">NEXT: HANDOVER</button>
+            </div>
+
+            <div id="step5" class="workflow-step">
+                <h3 class="text-2xl font-orbitron font-bold text-emerald-400 mb-2" data-i18n="step5-title">5. Handover & Warranty</h3>
+                <div class="waiver-box mb-4 text-center">
+                    <h1 class="text-red-400 text-lg mb-2 font-bold"><i class="fas fa-lock"></i> <span data-i18n="step5-warn">WARRANTY VOID IF REMOVED</span></h1>
+                    <p data-i18n="step5-desc">3-Month Limited Warranty. Warranty is immediately void if the anti-tamper sticker is broken or inverted parameters are altered.</p>
+                </div>
+                <div class="flex justify-between space-x-4">
+                    <button onclick="window.print()" class="w-1/2 py-3 bg-slate-600 text-white font-bold rounded-xl hover:bg-slate-500"><i class="fas fa-print"></i> <span data-i18n="step5-btn1">PRINT REPORT</span></button>
+                    <button onclick="hideIntakeForm(); goToStep(1);" class="w-1/2 py-3 bg-emerald-500 text-black font-bold rounded-xl" data-i18n="step5-btn2">COMPLETE & CLOSE</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ⚡ 终极语言与脚本控制中心 ⚡ -->
+    <script>
+        const i18n = {
+            en: {
+                "nav-solutions": "SOLUTIONS", "nav-projects": "PROJECTS", "nav-about": "ABOUT US", "nav-plans": "SAAS PLANS",
+                "main-title": "GLOBAL ENERGY DISPATCH CENTER", 
+                "main-subtitle": "We are your ultimate microgrid partner. CoreTect empowers global clients through a complete lifecycle loop: supplying inherently safe ESS, enabling 24/7 cloud monitoring and remote intelligent early warning, and reviving battery cells with laboratory-grade reconstruction.",
+                "hero-tag1": "Top Solid-State ESS Supply", 
+                "hero-tag2": "Battery PACK Repair & Cell Replacement", 
+                "hero-tag3": "BMS Diagnostics & Calibration",
+                "hero-tag4": "Inverter & BMS Comm Debugging",
+                "hero-tag5": "4G IoT Module & Cloud Integration",
+                "hero-tag6": "Testing Equipment Sales",
+                "hero-tag7": "Components & Consumables Sales",
+                "btn-view-plans": "VIEW SAAS PLANS", "btn-subscribe": "SUBSCRIBE",
+                "main-desc": "CoreTect global asset distribution. Red nodes represent active smart operation centers.",
+                "map-prompt": "PLEASE SELECT YOUR REGION",
+                "map-cn": "CHINA HQ", "map-ph": "PHILIPPINES HUB", "map-vn": "VIETNAM HUB", "leg-active": "ACTIVE HUB", "leg-pending": "PENDING",
+                "mod-back": "BACK TO MAP", "mod-status": "LOCAL HUB STATUS: ACTIVE", "mod-subtitle": "Core Energy Service Pillars",
+                "c1-t": "Remote Monitoring", "c1-d": "Real-time data collection via CoreTect Global Cloud.", "c1-btn": "ACCESS CLOUD",
+                "c2-t": "ESS Solutions", "c2-d": "Solid-state storage systems. Exclusive QingTao partner.", "btn-showroom": "ENTER SHOWROOM",
+                "c3-t": "Tech Support & Reconditioning", "c3-d": "Battery cell-level diagnostics, BMS unlocking, and protocol bridging.", "btn-req-repair": "REQUEST REPAIR \u2192",
+                "c4-t": "Testing Equipment", "c4-d": "Industrial battery testers & balancing systems.",
+                "c5-t": "Components", "c5-d": "Smart BMS, cables, copper bars.",
+                "foo-hq-label": "China Headquarters", "foo-hq-name": "Hunan CoreTect Energy Technology Co., Ltd.", "foo-hq-addr": "Hunan, China",
+                "foo-contact-label": "Global Contact", "foo-wa": "WhatsApp: +86 19073619133",
+                "loc-tag": "LOCAL SERVICE HUB", "loc-title": "Regional Headquarters", "loc-email-tag": "EMAIL SUPPORT",
+                
+                "loc-addr-ph": "Unit 7-Ground floor Narra Commercial Buidling 100 M.L Quezon Street. Parang, Marikina",
+                "loc-addr-cn": "Energy Innovation Center, Hunan, China (Headquarters)",
+                "loc-addr-vn": "Ho Chi Minh City Area, Vietnam (Pending setup)",
+                
+                "app-title": "Pocket Microgrid Control",
+                "app-desc": "Stay connected to your energy assets anywhere in the world. Our proprietary 4G IoT module streams live battery data directly to your smartphone, providing military-grade preventive alerts before failures occur.",
+                "app-f1": "Mobile APP", "app-f1-desc": "iOS & Android compatible dashboard.",
+                "app-f2": "Telegram/WeChat Alerts", "app-f2-desc": "Instant push notifications for alarms.",
+                "app-f3": "Temp Warning", "app-f3-desc": "Thermal runaway predictive alert.",
+                "app-f4": "Voltage Anomaly", "app-f4-desc": "Delta-V and over/under voltage tracking.",
+                "app-f5": "Remote Status", "app-f5-desc": "Real-time SoC & SOH tracking.",
+                "app-f6": "System Fault Action", "app-f6-desc": "Auto-shutdown on critical errors.",
+                
+                "sr-title": "The Future of Safe Energy",
+                "sr-desc": "CoreTect is the overseas global technical partner for QingTao Solid-State Energy Systems. We bring billion-dollar inherently safe semi-solid Li-ion technology to Southeast Asia, backed by local lab-grade warranty and protocol integration.",
+                "sr-p1-t": "An-Xin Household ESS", "sr-p1-l1": "Capacity: 5kWh ~ 64kWh", "sr-p1-l2": "Semi-solid LFP: Inherently safe", "sr-p1-l3": "Cycle Life: ≥8000 Times",
+                "sr-p2-t": "Small-Scale Pan-Shi C&I ESS", "sr-p2-l1": "Capacity: 61kWh ~ 107kWh", "sr-p2-l2": "Power: 30kW ~ 50kW Hybrid Inverter", "sr-p2-l3": "Built-in Aerosol Fire Extinguishing",
+                "sr-p3-t": "Pan-Shi C&I ESS", "sr-p3-l1": "Capacity: 241kWh ~ 261kWh", "sr-p3-l2": "Liquid Cooling Thermal Management", "sr-p3-l3": "Expansion of grid station & Microgrid",
+                "sr-p4-t": "Back-up Power UPS System", "sr-p4-l1": "0ms Switching Time", "sr-p4-l2": "Voltage: 512V (High Voltage Series)", "sr-p4-l3": "Rated Power: 10kVA up to 1200kVA",
+                "sr-btn-spec": "VIEW FULL SPECS", "sr-btn-quote": "REQUEST QUOTE",
+                "spec-zoom-hint": "CLICK IMAGE TO ZOOM IN/OUT. Scroll to view details.",
+                "sr-ad-title": "Why buy from CoreTect instead of importing directly?",
+                "sr-ad-1": "Local Stock in Manila, Zero Customs Hassle.",
+                "sr-ad-2": "Local Lab-Grade Warranty & Repair.",
+                "sr-ad-3": "Seamless Inverter Protocol Integration.",
+                
+                "price-title": "Cloud SaaS Plans", "price-desc": "Scale your energy management with our military-grade cloud infrastructure. Choose the plan that fits your operational needs.",
+                "price-t1": "BASIC MONITOR", "price-d1": "Standard cloud access for single site owners.", "p1-f1": "24/7 Cloud Dashboard Access", "p1-f2": "Real-time SoC & Voltage View", "p1-f3": "Basic App Notifications",
+                "price-t2": "PRO ALERT +", "price-d2": "Active protection with AI thermal runaway predictions.", "p2-f1": "Everything in BASIC", "p2-f2": "Smart Telegram/WeChat Alerts", "p2-f3": "Predictive Temp & Delta-V Warning", "p2-f4": "Monthly Battery Health Report",
+                "price-t3": "ENTERPRISE O&M", "price-d3": "Fully managed Operations & Maintenance for businesses.", "p3-f1": "Everything in PRO", "p3-f2": "Dedicated 24/7 Tech Team Monitor", "p3-f3": "Remote Fault Shutdown & Reboot", "p3-f4": "Free Annual On-site Inspection",
+                "btn-select-plan": "SELECT PLAN",
+
+                "sub-title": "Subscribe to SaaS Plan", "sub-desc": "Select your country and submit. Our team will contact you for activation.",
+                "sub-plan": "SELECTED PLAN", "sub-country": "COUNTRY / REGION *", "sub-btn": "SUBMIT REQUEST",
+                "sub-dtu-title": "HARDWARE REQUIREMENT (4G DTU) *",
+                "sub-dtu-opt0": "Do you have our 4G DTU module installed?",
+                "sub-dtu-opt1": "YES, I already have the DTU installed.",
+                "sub-dtu-opt2": "NO, please include a 4G DTU in my quote.",
+                "sub-dtu-sn-label": "Please enter your DTU Serial Number (SN):",
+
+                "quote-title": "Request Wholesale Quote", "quote-desc": "Leave your info. Our sales team will email you the distributor pricing.",
+                "quote-name": "NAME / COMPANY *", "quote-contact": "WHATSAPP / EMAIL *", "quote-msg": "ORDER QUANTITY & MESSAGE *", "quote-btn": "SEND INQUIRY",
+
+                "form-title": "Diagnostic & Repair Intake", "form-subtitle": "Submit your battery details.", "form-name": "NAME / COMPANY *", "form-wa": "WHATSAPP NUMBER *", "form-batt": "BATTERY SPECS (Voltage & Ah) *", "form-desc": "FAULT DESCRIPTION *", "form-waiver-title": "LIABILITY WAIVER *", "form-waiver-text": "By submitting this form and bringing your equipment to our local partner facility, you agree to the following:<br><br>1. <b>Diagnostic Risks:</b> Lithium batteries carry inherent risks of thermal runaway. CoreTect and its local operating partner are strictly NOT liable for any pre-existing internal short circuits, sudden fires, or hardware failures discovered during the diagnostic or repair process.<br>2. <b>Data & Settings:</b> We are not responsible for inverter parameter resets or data loss.<br>3. <b>Abandonment:</b> Any equipment left unclaimed for 30 days after diagnostic/repair will be considered abandoned and disposed of to cover storage costs.", "form-agree": "I read and accept the Liability Waiver.", "form-submit": "SUBMIT TO LAB",
+                "step2-title": "2. Internal Diagnostic", "step2-tag": "STAFF ONLY", "step2-tv": "Total Voltage", "step2-bc": "Bad Cells Identified", "step2-bms": "BMS Status", "step2-btn": "NEXT: QUOTATION",
+                "step3-title": "3. Official Quotation", "step3-opta": "<b>Option A:</b> Software Unlock & Balance", "step3-optb": "<b>Option B:</b> Cell Replacement + Smart BMS", "step3-optc": "<b>Option C:</b> Add Fire Suppressor", "step3-total": "Total Amount:", "step3-btn": "NEXT: QC & WORK ORDER",
+                "step4-title": "4. Quality Control (QC)", "step4-chk1": "Old cells removed safely", "step4-chk2": "Kapton tape applied", "step4-chk3": "BMS flashed & parameters set", "step4-chk4": "100V Aging Test Passed", "step4-btn": "NEXT: HANDOVER",
+                "step5-title": "5. Handover & Warranty", "step5-warn": "WARRANTY VOID IF REMOVED", "step5-desc": "3-Month Limited Warranty. Warranty is immediately void if the anti-tamper sticker is broken or inverted parameters are altered.", "step5-btn1": "PRINT REPORT", "step5-btn2": "COMPLETE & CLOSE", "lang-next": "CN", "btn-cloud-sub": "GLOBAL GUEST VIEW (NO LOGIN)", "btn-cloud": "Cloud Monitoring Center"
+            },
+            zh: {
+                "nav-solutions": "解决方案", "nav-projects": "服务网络", "nav-about": "关于我们", "nav-plans": "订阅方案",
+                "main-title": "全球微电网调度中心", 
+                "main-subtitle": "从尖端固态储能供应、全天候云端监控，远程智能预警，到实验室级电芯重构——CoreTect 探掣芯能为您提供微电网全生命周期管家服务。",
+                "hero-tag1": "顶尖固态储能供应", 
+                "hero-tag2": "电池PACK维修与电芯更换", 
+                "hero-tag3": "BMS故障诊断与参数校准",
+                "hero-tag4": "逆变器与BMS通信调试",
+                "hero-tag5": "4G远程监控模块安装与云平台接入",
+                "hero-tag6": "检测设备销售",
+                "hero-tag7": "零部件与辅材销售",
+                "btn-view-plans": "查看云端订阅方案", "btn-subscribe": "订阅方案",
+                "main-desc": "探掣芯能全球资产分布。红色节点代表已激活的海外智能检测与运维中心。",
+                "map-prompt": "请在地图上选择您的所在国家 / 地区",
+                "map-cn": "CHINA HQ 中国总部", "map-ph": "PHILIPPINES 菲律宾站", "map-me": "MIDDLE EAST 中东站", "map-vn": "VIETNAM 越南站", "leg-active": "已激活 HUB (ACTIVE)", "leg-pending": "筹建中 (PENDING)",
+                "mod-back": "返回全球地图", "mod-status": "LOCAL HUB STATUS: ACTIVE / 已激活", "mod-subtitle": "综合能源服务中心 · 核心业务板块",
+                "c1-t": "云端智能监控", "c1-d": "通过 CoreTect 全球云平台提供 24/7 异常预警。", "c1-btn": "进入监控云",
+                "c2-t": "储能系统解决方案", "c2-d": "清陶能源固态储能系统海外独家战略伙伴。", "btn-showroom": "进入产品展厅",
+                "c3-t": "电芯级重构与技术支持", "c3-d": "深入电芯底层的内阻诊断，BMS密码解锁及协议桥接。", "btn-req-repair": "立即预约检测与重构 \u2192",
+                "c4-t": "检测设备供应", "c4-d": "销售工业级电池测试设备，包括电芯分容柜。",
+                "c5-t": "零部件与耗材", "c5-d": "智能 BMS、高倍率连接线等配件供应。",
+                "foo-hq-label": "China Headquarters / 中国总部", "foo-hq-name": "湖南省探掣芯能能源科技有限公司", "foo-hq-addr": "中国 · 湖南",
+                "foo-contact-label": "Global Contact / 联系方式", "foo-wa": "WhatsApp / 微信: +86 19073619133",
+                "loc-tag": "本地服务枢纽", "loc-title": "区域营运总部", "loc-email-tag": "技术支持邮箱",
+                
+                "loc-addr-ph": "菲律宾马尼拉大都会 Marikina市 Parang区 100 M.L Quezon Street, Narra 商业大厦 1层 7单元",
+                "loc-addr-cn": "中国湖南省，探掣芯能能源科技研发总部",
+                "loc-addr-vn": "越南胡志明市周边地区 (网点筹建中)",
+                
+                "app-title": "装在口袋里的微电网中心",
+                "app-desc": "随时随地掌控您的全球能源资产。我们的 4G 工业物联网模块将电池底层数据实时推送到您的手机，在系统彻底宕机前提供军工级的预警干预。",
+                "app-f1": "专属手机 APP", "app-f1-desc": "支持 iOS 与安卓全平台状态大屏。",
+                "app-f2": "微信 / Telegram 报警", "app-f2-desc": "极速推送异常通知到您的聊天软件。",
+                "app-f3": "温度异常预警", "app-f3-desc": "精准监控电芯温升，防范热失控风险。",
+                "app-f4": "电压异常预警", "app-f4-desc": "实时追踪压差过大及过充过放状态。",
+                "app-f5": "远程状态透视", "app-f5-desc": "远程精准查看 SoC 电量与 SoH 寿命。",
+                "app-f6": "严重故障熔断", "app-f6-desc": "遇到极端物理故障，云端下发断电指令。",
+                
+                "sr-title": "安全能源的未来",
+                "sr-desc": "CoreTect (探掣芯能) 是清陶固态能源系统的海外技术战略伙伴。我们将估值百亿、本征安全的半固态锂电技术引入东南亚，并提供本地实验室级质保与底层协议对接。",
+                "sr-p1-t": "安芯户用储能系统", "sr-p1-l1": "容量覆盖: 5kWh ~ 64kWh", "sr-p1-l2": "半固态磷酸铁锂: 本征安全不起火", "sr-p1-l3": "循环寿命: ≥8000 次",
+                "sr-p2-t": "磐石小型工商业储能", "sr-p2-l1": "容量覆盖: 61kWh ~ 107kWh", "sr-p2-l2": "功率配置: 30kW ~ 50kW 混合逆变", "sr-p2-l3": "内置气溶胶自动灭火系统",
+                "sr-p3-t": "磐石大型工商业储能", "sr-p3-l1": "单柜容量: 241kWh ~ 261kWh", "sr-p3-l2": "液冷级热管理系统", "sr-p3-l3": "支持微电网与变电站无限扩容",
+                "sr-p4-t": "UPS 备用电源系统", "sr-p4-l1": "0毫秒无缝切换", "sr-p4-l2": "高压平台: 512V", "sr-p4-l3": "额定功率: 10kVA 至 1200kVA",
+                "sr-btn-spec": "查看详细参数", "sr-btn-quote": "获取经销商报价",
+                "spec-zoom-hint": "点击图片可自由放大 / 缩小，滑动查看详尽技术参数",
+                "sr-ad-title": "为什么选择 CoreTect，而不是自己跨国进口？",
+                "sr-ad-1": "马尼拉本地现货，免除海关扣货与高昂关税烦恼。",
+                "sr-ad-2": "本地实验室级质保，免除退回中国的高昂运费。",
+                "sr-ad-3": "免费提供上门底层协议对接，告别逆变器死机。",
+
+                "price-title": "云端 SaaS 订阅方案", "price-desc": "军工级的云端基础设施，全面保障您的资产安全。请选择适合您业务规模的订阅版本。",
+                "price-t1": "基础监控版", "price-d1": "适用于单站点家庭用户的标准云端接入。", "p1-f1": "24/7 云端状态大屏", "p1-f2": "实时电量 SoC 与电压监控", "p1-f3": "基础异常状态通知",
+                "price-t2": "高级预警版 (PRO)", "price-d2": "基于 AI 分析的主动式热失控预测与告警。", "p2-f1": "包含【基础版】所有功能", "p2-f2": "Telegram / 微信 异常极速推送", "p2-f3": "动态压差与温升预测报警", "p2-f4": "每月出具电池系统健康体检报告",
+                "price-t3": "企业托管版", "price-d3": "为大型工商业农场提供全托管的运维与干预服务。", "p3-f1": "包含【高级版】所有功能", "p3-f2": "专属技术团队 7x24 驻点监控", "p3-f3": "远程故障切断与强制重启权限", "p3-f4": "每年一次免费现场上门深度检修",
+                "btn-select-plan": "立即订阅",
+
+                "sub-title": "订阅云端SaaS方案", "sub-desc": "请选择您的国家并提交，我们的团队将联系您激活服务。",
+                "sub-plan": "已选方案", "sub-country": "国家 / 地区 *", "sub-btn": "提交订阅请求",
+                "sub-dtu-title": "硬件设备确认 (4G DTU) *",
+                "sub-dtu-opt0": "请问您是否已安装 CoreTect 4G DTU 通讯模块？",
+                "sub-dtu-opt1": "是，我已经安装了 DTU 模块。",
+                "sub-dtu-opt2": "否，请在我的报价单中包含一台 4G DTU。",
+                "sub-dtu-sn-label": "请输入您的 DTU 设备序列号 (SN)：",
+
+                "quote-title": "获取经销商报价",
+                "quote-desc": "留下您的信息，我们的销售团队会将出厂报价单发送至您的邮箱。",
+                "quote-name": "姓名 / 公司名称 *",
+                "quote-contact": "WhatsApp / 联系邮箱 *",
+                "quote-msg": "订购数量及需求留言 *",
+                "quote-btn": "发送询价单",
+
+                "form-title": "设备入库诊断预约", "form-subtitle": "请填写故障信息，实验室将尽快与您联系。", "form-name": "客户姓名或公司名称 *", "form-wa": "WhatsApp 或联系电话 *", "form-batt": "电池规格 (如 48V 200Ah 铁锂) *", "form-desc": "故障现象描述 *", "form-waiver-title": "免责声明 (入库必读) *", "form-waiver-text": "当您提交此表单并将设备送至我们合作点时，即代表您同意：<br><br>1. <b>诊断风险：</b> 故障电池存在热失控风险。CoreTect 及其本地 DTI 伙伴<b>绝对不承担</b>在检测中发现的内部短路、自燃或损坏赔偿。<br>2. <b>数据丢失：</b> 不对参数重置负责。<br>3. <b>逾期放弃：</b> 超过 30 天未领取的设备将被变卖抵扣仓储费。", "form-agree": "我已阅读并同意免责声明条款。", "form-submit": "确认提交登记",
+                "step2-title": "2. 内部体检表", "step2-tag": "内部检测专用", "step2-tv": "总压 (Total Voltage)", "step2-bc": "坏电芯编号及内阻", "step2-bms": "主板状态 (BMS Status)", "step2-btn": "下一步: 报价",
+                "step3-title": "3. 官方维修报价", "step3-opta": "<b>方案 A:</b> 软件解锁与主动均衡", "step3-optb": "<b>方案 B:</b> 更换电芯 + 智能 BMS", "step3-optc": "<b>方案 C:</b> 增加热失控灭火罐", "step3-total": "总计金额:", "step3-btn": "下一步: 质检与施工",
+                "step4-title": "4. 施工质检单 (QC)", "step4-chk1": "旧电芯已安全拆除", "step4-chk2": "已贴绝缘青稞纸与高温胶带", "step4-chk3": "BMS已刷机且参数已修正", "step4-chk4": "100V老化测试通过", "step4-btn": "下一步: 交付结算",
+                "step5-title": "5. 交付与质保书", "step5-warn": "撕毁无效", "step5-desc": "提供3个月有限质保。如防伪贴被撕毁、或擅自更改逆变器参数，质保失效。", "step5-btn1": "打印纸质报告", "step5-btn2": "结算并关闭单据", "lang-next": "EN", "btn-cloud-sub": "全球数据总览 (免登录大屏)", "btn-cloud": "进入监控云端中心"
+            }
+        };
+
+        const hubData = {
+            ph: { title: "map-ph", addr: "loc-addr-ph", phone: "+63 945 572 5265" },
+            cn: { title: "map-cn", addr: "loc-addr-cn", phone: "+86 19073619133" },
+            vn: { title: "map-vn", addr: "loc-addr-vn", phone: "+84 (Pending)" }
+        };
+
+        let currentLang = 'en';
+        let currentHub = 'ph'; 
+        let isZoomed = false; 
+
+        function toggleLang() { currentLang = currentLang === 'en' ? 'zh' : 'en'; updateUI(); }
+        
+        function updateUI() {
+            const strings = i18n[currentLang];
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (strings[key]) { el.innerHTML = strings[key]; }
+            });
+            document.getElementById('langBtn').innerText = strings['lang-next'];
+            
+            document.getElementById('dynamic-hub-title').innerHTML = strings[hubData[currentHub].title];
+            document.getElementById('dynamic-hub-addr').innerHTML = strings[hubData[currentHub].addr];
+
+            for(let i = 1; i <= 4; i++) {
+                const proImg = document.getElementById('pro-img-' + i);
+                if(proImg) {
+                    proImg.style.display = 'block'; 
+                    proImg.src = 'pro' + i + '-' + currentLang + '.jpg';
+                }
+            }
+        }
+
+        function openHub(countryCode) {
+            currentHub = countryCode;
+            document.getElementById('dynamic-hub-title').setAttribute('data-i18n', hubData[countryCode].title);
+            document.getElementById('dynamic-hub-addr').setAttribute('data-i18n', hubData[countryCode].addr);
+            
+            const phoneEl = document.getElementById('dynamic-hub-phone');
+            if (phoneEl) phoneEl.innerText = hubData[countryCode].phone;
+
+            updateUI(); 
+            
+            const cloudBtn = document.getElementById('dynamic-cloud-btn');
+            if (cloudBtn) {
+                cloudBtn.href = "intake.html?mode=client";
+            }
+
+            document.getElementById('business-overlay').style.display = 'block';
+            window.scrollTo({top: 0, behavior: 'instant'});
+        }
+        function closeHub() { document.getElementById('business-overlay').style.display = 'none'; }
+
+        function showShowroom() { document.getElementById('showroom-overlay').style.display = 'block'; }
+        function hideShowroom() { document.getElementById('showroom-overlay').style.display = 'none'; }
+
+        // ================= SaaS 价格表与订阅表单控制 =================
+        function showPricing() { document.getElementById('pricing-overlay').style.display = 'block'; }
+        function hidePricing() { document.getElementById('pricing-overlay').style.display = 'none'; }
+        
+        function showSubscribeForm(plan) {
+            document.getElementById('subscribe-plan-name').value = plan;
+            document.getElementById('subscribe-form-overlay').style.display = 'block';
+        }
+        function hideSubscribeForm() { document.getElementById('subscribe-form-overlay').style.display = 'none'; }
+        
+        // 🚀 DTU 选项逻辑 🚀
+        function toggleDtuInput(value) {
+            const snBox = document.getElementById('dtu-sn-box');
+            const snInput = document.getElementById('dtu-sn-input');
+            if(value === 'Yes_Has_DTU') {
+                snBox.style.display = 'block';
+                snInput.required = true;
+            } else {
+                snBox.style.display = 'none';
+                snInput.required = false;
+                snInput.value = '';
+            }
+        }
+
+        function submitSubscribe(event) {
+            event.preventDefault(); 
+            const btn = document.getElementById('submitBtnSubscribe');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> SENDING...';
+            const form = event.target;
+            const data = new FormData(form);
+            fetch(form.action, { method: form.method, body: data, headers: { 'Accept': 'application/json' }
+            }).then(response => {
+                if (response.ok) {
+                    btn.innerHTML = '<i class="fas fa-check mr-2"></i> SUCCESS!';
+                    setTimeout(() => { hideSubscribeForm(); hidePricing(); btn.innerHTML = originalText; form.reset(); }, 1500); 
+                } else { alert("Error sending."); btn.innerHTML = originalText; }
+            }).catch(error => { alert("Network error."); btn.innerHTML = originalText; });
+        }
+
+        function showIntakeForm() { document.getElementById('intake-form-overlay').style.display = 'block'; goToStep(1); }
+        function hideIntakeForm() { document.getElementById('intake-form-overlay').style.display = 'none'; }
+
+        function toggleZoom() {
+            const img = document.getElementById('spec-img');
+            const container = document.getElementById('spec-img-container');
+            isZoomed = !isZoomed;
+            
+            if(isZoomed) {
+                img.style.width = '200%'; 
+                img.style.maxWidth = 'none';
+                container.style.cursor = 'zoom-out';
+            } else {
+                img.style.width = '100%'; 
+                img.style.maxWidth = '100%';
+                container.style.cursor = 'zoom-in';
+            }
+        }
+
+        function openSpec(id, titleKey) {
+            const translatedTitle = i18n[currentLang][titleKey];
+            document.getElementById('spec-title').innerText = translatedTitle + (currentLang === 'en' ? " - Tech Specs" : " - 技术参数");
+            
+            const specImg = document.getElementById('spec-img');
+            specImg.style.display = 'block'; 
+            specImg.src = 'spec' + id + '-' + currentLang + '.jpg';
+            
+            isZoomed = false;
+            specImg.style.width = '100%';
+            specImg.style.maxWidth = '100%';
+            document.getElementById('spec-img-container').style.cursor = 'zoom-in';
+            
+            document.getElementById('quote-product-name').value = translatedTitle;
+            document.getElementById('spec-overlay').style.display = 'block';
+        }
+        
+        function closeSpec() { 
+            document.getElementById('spec-overlay').style.display = 'none'; 
+            isZoomed = false;
+            document.getElementById('spec-img').style.width = '100%';
+        }
+
+        function showQuoteForm() { document.getElementById('quote-form-overlay').style.display = 'block'; }
+        function hideQuoteForm() { document.getElementById('quote-form-overlay').style.display = 'none'; }
+
+        function submitStep1(event) {
+            event.preventDefault(); 
+            const btn = document.getElementById('submitBtn1');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> SENDING...';
+            const form = event.target;
+            const data = new FormData(form);
+            fetch(form.action, { method: form.method, body: data, headers: { 'Accept': 'application/json' }
+            }).then(response => {
+                if (response.ok) {
+                    btn.innerHTML = '<i class="fas fa-check mr-2"></i> SUCCESS!';
+                    setTimeout(() => { goToStep(2); btn.innerHTML = originalText; form.reset(); }, 800); 
+                } else { alert("Error sending email."); btn.innerHTML = originalText; }
+            }).catch(error => { alert("Network error."); btn.innerHTML = originalText; });
+        }
+
+        function submitQuote(event) {
+            event.preventDefault(); 
+            const btn = document.getElementById('submitBtnQuote');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> SENDING...';
+            const form = event.target;
+            const data = new FormData(form);
+            fetch(form.action, { method: form.method, body: data, headers: { 'Accept': 'application/json' }
+            }).then(response => {
+                if (response.ok) {
+                    btn.innerHTML = '<i class="fas fa-check mr-2"></i> SUCCESS!';
+                    setTimeout(() => { hideQuoteForm(); btn.innerHTML = originalText; form.reset(); }, 1500); 
+                } else { alert("Error sending."); btn.innerHTML = originalText; }
+            }).catch(error => { alert("Network error."); btn.innerHTML = originalText; });
+        }
+
+        function goToStep(stepNum) {
+            document.querySelectorAll('.workflow-step').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.step-item').forEach(el => el.classList.remove('active'));
+            document.getElementById('step' + stepNum).classList.add('active');
+            for(let i=1; i<=stepNum; i++) { document.getElementById('nav-step' + i).classList.add('active'); }
+        }
+
+        window.onload = function() {
+            updateUI(); 
+            if (window.location.hash === '#repair') {
+                showIntakeForm();
+            }
+        };
+    </script>
+</body>
+</html>

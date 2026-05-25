@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CORETECT SENTINEL | Global Energy Control</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&family=Noto+Sans+SC:wght@300;400;700&display=swap');
+:root{
+  --safe:#00ff99;--warn:#ffcc00;--danger:#ff3366;
+  --blue:#3b82f6;--bg:#020817;--panel:rgba(8,18,42,0.92);
+  --border:rgba(255,255,255,0.18);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:#fff;overflow-x:hidden;font-family:'Noto Sans SC',sans-serif}
+.os{font-family:'Orbitron',sans-serif}
+.mono{font-family:'Share Tech Mono',monospace}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.025) 3px,rgba(0,0,0,0.025) 6px)}
+.gbg{background-image:linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);background-size:50px 50px}
+
+/* screens */
+#guest-screen,#login-screen,#client-screen{display:none}
+
+/* login */
+.lwrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 40% 40%,#0a1628,#020817 70%)}
+.lbox{width:460px;padding:3rem;background:rgba(8,18,42,0.97);border:1px solid rgba(59,130,246,0.3);border-radius:1.5rem;box-shadow:0 0 80px rgba(59,130,246,0.12)}
+.inp{width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:#fff;padding:1rem 1.2rem;border-radius:.7rem;outline:none;font-family:'Share Tech Mono',monospace;font-size:1rem;transition:all .3s}
+.inp:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,0.2)}
+.abtn{width:100%;padding:1.1rem;background:linear-gradient(135deg,#1d4ed8,#3b82f6);border:none;border-radius:.7rem;color:#fff;font-family:'Orbitron',sans-serif;font-size:.85rem;font-weight:700;letter-spacing:.2em;cursor:pointer;transition:all .3s;box-shadow:0 4px 20px rgba(59,130,246,.4)}
+.abtn:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(59,130,246,.6)}
+.abtn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+/* header */
+.hdr{position:sticky;top:0;z-index:100;background:rgba(2,8,23,0.97);backdrop-filter:blur(24px);border-bottom:1px solid var(--border);padding:.9rem 2rem;display:flex;align-items:center;gap:1.5rem}
+
+/* panels */
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:1rem;padding:1.6rem}
+.panel-sm{background:var(--panel);border:1px solid var(--border);border-radius:1rem;padding:1.2rem}
+
+/* big metric */
+.bignum{font-family:'Orbitron',sans-serif;font-size:2.6rem;font-weight:900;line-height:1}
+.biglbl{font-family:'Share Tech Mono',monospace;font-size:.8rem;color:#cbd5e1;margin-top:.5rem}
+.bigsub{font-family:'Share Tech Mono',monospace;font-size:.72rem;color:#94a3b8;margin-top:.2rem}
+
+/* metric box */
+.mbox{background:rgba(0,0,0,0.45);border:1px solid rgba(255,255,255,0.12);border-radius:.8rem;padding:1.2rem 1rem;text-align:center}
+.mval{font-family:'Orbitron',sans-serif;font-size:2rem;font-weight:900;line-height:1;color:#fff}
+.mlbl{font-family:'Share Tech Mono',monospace;font-size:.78rem;color:#e2e8f0;margin-top:.5rem}
+.msub{font-family:'Share Tech Mono',monospace;font-size:.68rem;color:#94a3b8;margin-top:.2rem}
+
+/* device card */
+.dcard{background:var(--panel);border:1px solid var(--border);border-radius:1rem;padding:1.3rem;cursor:pointer;transition:all .3s;position:relative;overflow:hidden}
+.dcard::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--safe);border-radius:4px 0 0 4px}
+.dcard.warn::before{background:var(--warn)}
+.dcard.danger::before{background:var(--danger)}
+.dcard:hover{border-color:rgba(59,130,246,.5);transform:translateY(-2px);box-shadow:0 10px 28px rgba(0,0,0,.5)}
+.dcard.sel{border-color:rgba(59,130,246,.7);background:rgba(20,40,80,.8)}
+
+/* soc bar */
+.sbar-bg{height:7px;background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden;margin-top:.5rem}
+.sbar{height:100%;border-radius:4px;transition:width 1.2s ease}
+
+/* led */
+.led{width:10px;height:10px;border-radius:50%;display:inline-block;flex-shrink:0}
+.lg{background:var(--safe);box-shadow:0 0 10px var(--safe);animation:blink 2s infinite}
+.ly{background:var(--warn);box-shadow:0 0 10px var(--warn);animation:blink 1.5s infinite}
+.lr{background:var(--danger);box-shadow:0 0 10px var(--danger);animation:blink 1s infinite}
+.loff{background:#334155}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* badge */
+.badge{font-family:'Orbitron',sans-serif;font-size:.65rem;font-weight:700;padding:.3rem .8rem;border-radius:.35rem;letter-spacing:.1em}
+.bc{background:rgba(16,185,129,.18);color:#34d399;border:1px solid rgba(16,185,129,.35)}
+.bd{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.35)}
+.bs{background:rgba(100,116,139,.18);color:#e2e8f0;border:1px solid rgba(148,163,184,.35)}
+.bb{background:rgba(99,102,241,.18);color:#a5b4fc;border:1px solid rgba(99,102,241,.35)}
+
+/* alarm */
+.arow{background:linear-gradient(90deg,rgba(255,51,102,.1),transparent);border-left:3px solid var(--danger);border-radius:0 .5rem .5rem 0;padding:.9rem 1.1rem;margin-bottom:.5rem}
+.arow2{background:linear-gradient(90deg,rgba(255,204,0,.08),transparent);border-left:3px solid var(--warn);border-radius:0 .5rem .5rem 0;padding:.9rem 1.1rem;margin-bottom:.5rem}
+
+/* field row */
+.frow{display:flex;justify-content:space-between;align-items:center;padding:.65rem 0;border-bottom:1px solid rgba(255,255,255,0.07)}
+.fkey{font-family:'Share Tech Mono',monospace;font-size:.88rem;color:#cbd5e1}
+.fval{font-family:'Share Tech Mono',monospace;font-size:.9rem;color:#fff;font-weight:bold}
+
+/* savings card */
+.savings-card{background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(5,150,105,0.08));border:1px solid rgba(16,185,129,0.35);border-radius:1rem;padding:1.4rem}
+
+/* tabs */
+.tab{font-family:'Orbitron',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.1em;padding:.6rem 1.2rem;border-radius:.5rem;cursor:pointer;transition:all .2s;border:1px solid transparent;color:#94a3b8}
+.tab.on{background:rgba(59,130,246,.2);color:#93c5fd;border-color:rgba(59,130,246,.4)}
+.tab:hover:not(.on){color:#e2e8f0;background:rgba(255,255,255,.05)}
+
+/* section title */
+.stitle{font-family:'Orbitron',sans-serif;font-size:.85rem;color:#93c5fd;letter-spacing:.15em;margin-bottom:1rem;display:flex;align-items:center;gap:.6rem}
+.stitle::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(59,130,246,.4),transparent)}
+
+/* lang */
+.lbtn{font-family:'Orbitron',sans-serif;font-size:.65rem;font-weight:700;padding:.4rem .9rem;border-radius:.4rem;cursor:pointer;transition:all .2s;border:1px solid rgba(59,130,246,.35);color:#93c5fd;letter-spacing:.1em}
+.lbtn:hover{background:rgba(59,130,246,.15)}
+
+/* guest stat */
+.gstat{background:rgba(8,18,42,0.88);border:1px solid rgba(59,130,246,0.35);border-radius:1.2rem;padding:1.8rem;text-align:center;transition:all .3s}
+.gstat:hover{border-color:rgba(59,130,246,.6);box-shadow:0 0 30px rgba(59,130,246,.12)}
+
+/* savings highlight */
+.savings-highlight{background:linear-gradient(135deg,rgba(16,185,129,0.2),rgba(5,150,105,0.1));border:1px solid rgba(16,185,129,0.4);border-radius:1.2rem;padding:1.8rem;text-align:center}
+
+/* alert badge */
+.alert-badge{position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;font-size:.6rem;font-weight:700;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif}
+
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:#0a1628}
+::-webkit-scrollbar-thumb{background:#1e3a8a;border-radius:3px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.fu{animation:fadeUp .45s ease forwards}
+</style>
+</head>
+<body class="gbg">
+
+<!-- ══════════════ LOGIN ══════════════ -->
+<div id="login-screen">
+<div class="lwrap">
+<div class="lbox fu">
+  <div class="text-center mb-8">
+    <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
+         style="background:linear-gradient(135deg,#1e40af,#3b82f6);box-shadow:0 0 40px rgba(59,130,246,.4)">
+      <i class="fas fa-satellite-dish text-white text-2xl"></i>
+    </div>
+    <div class="os text-2xl font-black tracking-widest text-white">CORETECT</div>
+    <div class="text-blue-300 os text-sm tracking-[.3em] mt-1">SENTINEL SYSTEM</div>
+    <div class="text-slate-300 text-sm mt-2" id="l-sub">Remote Asset Monitoring & Early Warning</div>
+  </div>
+  <div class="space-y-5">
+    <div>
+      <label class="block os text-xs text-slate-300 mb-2 tracking-widest" id="l-uid">OPERATOR ID</label>
+      <input id="l-user" type="email" class="inp" placeholder="your@email.com" autocomplete="username">
+    </div>
+    <div>
+      <label class="block os text-xs text-slate-300 mb-2 tracking-widest" id="l-pwd">ACCESS CODE</label>
+      <input id="l-pass" type="password" class="inp" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div id="l-err" class="hidden text-red-400 text-sm mono px-1"><i class="fas fa-exclamation-triangle mr-2"></i><span></span></div>
+    <button id="l-btn" onclick="doLogin()" class="abtn mt-2">
+      <i class="fas fa-shield-alt mr-2"></i><span id="l-btxt">AUTHENTICATE</span>
+    </button>
+  </div>
+  <div class="mt-6 pt-5 border-t border-white/10 flex justify-between items-center">
+    <a href="intake.html?mode=guest" class="text-slate-300 hover:text-blue-300 text-sm mono transition-colors">
+      <i class="fas fa-eye mr-1"></i><span id="l-guest">Guest View</span>
+    </a>
+    <button onclick="toggleLang()" class="lbtn" id="l-lbtn">中文</button>
+  </div>
+  <div class="text-center mt-4 mono text-xs text-slate-500">CORETECT · SINGAPORE NODE · v3.0</div>
+</div>
+</div>
+</div>
+
+<!-- ══════════════ GUEST ══════════════ -->
+<div id="guest-screen">
+<div class="hdr">
+  <div class="flex items-center gap-3">
+    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,#1e40af,#3b82f6)">
+      <i class="fas fa-satellite-dish text-white"></i>
+    </div>
+    <div>
+      <div class="os font-black text-base tracking-widest">CORETECT <span class="text-blue-300 font-light">SENTINEL</span></div>
+      <div class="mono text-xs text-white" id="g-sub">GLOBAL ENERGY CONTROL CENTER</div>
+    </div>
+  </div>
+  <div class="flex-1"></div>
+  <div class="flex items-center gap-2 mr-4">
+    <div class="led lg"></div>
+    <span class="mono text-sm text-green-300" id="g-live">LIVE</span>
+  </div>
+  <div class="mono text-sm text-blue-200" id="g-clk"></div>
+  <button onclick="toggleLang()" class="lbtn ml-4" id="g-lbtn">中文</button>
+  <a href="intake.html?mode=client" class="ml-4 px-4 py-2 rounded-lg border border-blue-500/40 hover:bg-blue-500/20 transition-all text-blue-300 mono text-sm font-bold">
+    <i class="fas fa-lock mr-1"></i><span id="g-clogin">CLIENT LOGIN</span>
+  </a>
+</div>
+
+<div class="p-5 max-w-7xl mx-auto">
+  <!-- KPI row -->
+  <div class="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6 fu">
+    <div class="gstat">
+      <div class="bignum text-green-400" id="g-dev">--</div>
+      <div class="biglbl" id="g-l-dev">ONLINE DEVICES</div>
+    </div>
+    <div class="gstat">
+      <div class="bignum text-blue-400" id="g-nrg">--</div>
+      <div class="biglbl">kWh</div>
+      <div class="bigsub" id="g-l-nrg">TOTAL ENERGY STORED</div>
+    </div>
+    <div class="gstat">
+      <div class="bignum text-yellow-400" id="g-soc">--</div>
+      <div class="biglbl">%</div>
+      <div class="bigsub" id="g-l-soc">AVG SOC</div>
+    </div>
+    <div class="gstat">
+      <div class="bignum text-emerald-400" id="g-co2">--</div>
+      <div class="biglbl">kg</div>
+      <div class="bigsub" id="g-l-co2">CO₂ SAVED</div>
+    </div>
+    <div class="gstat">
+      <div class="bignum text-purple-400" id="g-frq">--</div>
+      <div class="biglbl">Hz</div>
+      <div class="bigsub" id="g-l-frq">GRID FREQ (PH)</div>
+    </div>
+    <!-- SAVINGS HIGHLIGHT -->
+    <div class="savings-highlight">
+      <div class="bignum text-green-300" id="g-save">--</div>
+      <div class="biglbl" id="g-save-cur">₱ SAVED</div>
+      <div class="bigsub" id="g-l-save">TOTAL COST SAVINGS</div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-12 gap-5">
+    <!-- Device list -->
+    <div class="col-span-12 md:col-span-4">
+      <div class="panel">
+        <div class="stitle" id="g-l-fleet">FLEET STATUS</div>
+        <div id="g-devlist" class="space-y-1"></div>
+      </div>
+    </div>
+    <!-- Chart + CTA -->
+    <div class="col-span-12 md:col-span-8 space-y-5">
+      <div class="panel">
+        <div class="stitle" id="g-l-chart">FLEET SOC OVERVIEW</div>
+        <div style="height:200px"><canvas id="g-chart"></canvas></div>
+      </div>
+      <div class="rounded-2xl p-6 text-center" style="background:linear-gradient(135deg,rgba(29,78,216,0.25),rgba(59,130,246,0.1));border:1px solid rgba(59,130,246,0.35)">
+        <div class="os text-xl font-bold text-white mb-2" id="g-cta-t">Become a CoreTect SaaS Client</div>
+        <div class="text-slate-200 text-sm mb-5" id="g-cta-s">Get 24/7 monitoring, WhatsApp/Telegram alerts, multi-site management & monthly reports.</div>
+        <div class="flex justify-center gap-4 flex-wrap">
+          <a href="/index.html#pricing" class="px-6 py-3 rounded-xl font-bold os text-sm tracking-wider text-white transition-all"
+             style="background:linear-gradient(135deg,#1d4ed8,#3b82f6);box-shadow:0 4px 20px rgba(59,130,246,.4)">
+            <i class="fas fa-crown mr-2"></i><span id="g-btn-p">VIEW SAAS PLANS</span>
+          </a>
+          <a href="intake.html?mode=client" class="px-6 py-3 rounded-xl font-bold os text-sm tracking-wider border border-blue-500/40 text-blue-300 hover:bg-blue-500/20 transition-all">
+            <i class="fas fa-sign-in-alt mr-2"></i><span id="g-btn-l">CLIENT LOGIN</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══════════════ CLIENT ══════════════ -->
+<div id="client-screen">
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="flex items-center gap-3 shrink-0">
+    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,#1e40af,#3b82f6)">
+      <i class="fas fa-satellite-dish text-white"></i>
+    </div>
+    <div>
+      <div class="os font-black text-base tracking-widest">CORETECT <span class="text-blue-300 font-light">SENTINEL</span></div>
+      <div class="mono text-xs text-white">LIVE MONITORING SYSTEM</div>
+    </div>
+  </div>
+  <div class="flex gap-5 ml-6">
+    <div class="text-center">
+      <div class="os text-xl font-bold text-green-400" id="h-act">0</div>
+      <div class="mono text-xs text-white" id="h-l-act">ACTIVE</div>
+    </div>
+    <div class="text-center">
+      <div class="os text-xl font-bold text-yellow-400" id="h-wrn">0</div>
+      <div class="mono text-xs text-white" id="h-l-wrn">WARNING</div>
+    </div>
+    <div class="text-center">
+      <div class="os text-xl font-bold text-red-400" id="h-alm">0</div>
+      <div class="mono text-xs text-white">ALARM</div>
+    </div>
+  </div>
+  <div class="flex-1"></div>
+  <!-- Savings in header -->
+  <div class="savings-card px-5 py-2 mr-4 text-center">
+    <div class="mono text-xs text-green-300" id="h-l-save">TOTAL SAVINGS</div>
+    <div class="os text-lg font-bold text-green-400" id="h-save">₱ --</div>
+  </div>
+  <div class="text-right">
+    <div class="mono text-sm text-blue-200" id="c-clk"></div>
+    <div class="mono text-xs text-white" id="c-upd">AWAITING DATA</div>
+  </div>
+  <button onclick="refreshAll()" class="ml-4 w-9 h-9 rounded-lg border border-white/15 hover:border-blue-500/50 flex items-center justify-center text-white hover:text-blue-300 transition-all">
+    <i class="fas fa-sync-alt" id="c-spin"></i>
+  </button>
+  <button onclick="toggleLang()" class="lbtn ml-2" id="c-lbtn">中文</button>
+  <button onclick="doLogout()" class="ml-2 w-9 h-9 rounded-lg border border-white/15 hover:border-red-500/50 flex items-center justify-center text-white hover:text-red-400 transition-all">
+    <i class="fas fa-sign-out-alt"></i>
+  </button>
+</div>
+
+<!-- BODY -->
+<div class="p-5 grid grid-cols-12 gap-5">
+
+  <!-- LEFT -->
+  <div class="col-span-12 md:col-span-3">
+    <div class="flex justify-between items-center mb-3">
+      <span class="os text-sm text-white tracking-widest" id="c-l-fleet">FLEET</span>
+      <span class="mono text-xs text-slate-200" id="c-cnt">-- devices</span>
+    </div>
+    <div class="flex gap-2 flex-wrap mb-3">
+      <button class="tab on" onclick="filterDev('all',this)">ALL</button>
+      <button class="tab" onclick="filterDev('ess',this)">ESS</button>
+      <button class="tab" onclick="filterDev('golf',this)">GOLF</button>
+      <button class="tab" onclick="filterDev('bess',this)">COMM</button>
+    </div>
+    <div id="c-devlist" class="space-y-2 overflow-y-auto" style="max-height:calc(100vh - 240px)"></div>
+  </div>
+
+  <!-- MIDDLE -->
+  <div class="col-span-12 md:col-span-6 space-y-4">
+
+    <!-- 4 big metrics -->
+    <div class="grid grid-cols-4 gap-3">
+      <div class="mbox">
+        <div class="mlbl" id="c-l-soc">SOC</div>
+        <div class="mval mt-1" id="d-soc">--</div>
+        <div class="msub">%</div>
+      </div>
+      <div class="mbox">
+        <div class="mlbl" id="c-l-soh">SOH</div>
+        <div class="mval mt-1 text-green-400" id="d-soh">--</div>
+        <div class="msub">%</div>
+      </div>
+      <div class="mbox">
+        <div class="mlbl" id="c-l-pwr">POWER</div>
+        <div class="mval mt-1 text-blue-400" id="d-pwr">--</div>
+        <div class="msub" id="d-pwr-u">kW</div>
+      </div>
+      <div class="mbox">
+        <div class="mlbl" id="c-l-tmp">TEMP</div>
+        <div class="mval mt-1 text-orange-400" id="d-tmp">--</div>
+        <div class="msub">°C</div>
+      </div>
+    </div>
+
+    <!-- Detail panel -->
+    <div class="panel">
+      <div class="flex items-start justify-between mb-4">
+        <div>
+          <div class="os text-lg font-bold text-white" id="d-name">Select a device</div>
+          <div class="mono text-sm text-slate-200 mt-1" id="d-loc">——</div>
+        </div>
+        <div id="d-badge"></div>
+      </div>
+
+      <!-- SOC bar -->
+      <div class="mb-5">
+        <div class="flex justify-between mono text-sm text-white mb-2">
+          <span id="c-l-charge">STATE OF CHARGE</span>
+          <span id="d-nrg">-- / -- kWh</span>
+        </div>
+        <div class="sbar-bg"><div class="sbar" id="d-sbar" style="width:0%;background:var(--safe)"></div></div>
+      </div>
+
+      <!-- Savings for this device -->
+      <div class="savings-card mb-5">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="mono text-sm text-white mb-1" id="c-l-devsave">ESTIMATED COST SAVINGS</div>
+            <div class="mono text-xs text-green-300" id="c-l-savebasis">Based on local electricity rate</div>
+          </div>
+          <div class="text-right">
+            <div class="os text-2xl font-bold text-green-400" id="d-save">--</div>
+            <div class="mono text-xs text-green-300" id="d-save-lbl">₱ saved</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Battery status row -->
+      <div class="grid grid-cols-2 gap-3 mb-5">
+        <div>
+          <div class="mono text-sm text-white mb-2" id="c-l-bstatus">BATTERY STATUS</div>
+          <div class="space-y-2" id="d-bms-status">
+            <div class="flex items-center gap-2 text-sm"><div class="led loff" id="s-chg"></div><span class="mono text-white" id="c-s-chg">Charging</span></div>
+            <div class="flex items-center gap-2 text-sm"><div class="led loff" id="s-dsg"></div><span class="mono text-white" id="c-s-dsg">Discharging</span></div>
+            <div class="flex items-center gap-2 text-sm"><div class="led loff" id="s-idl"></div><span class="mono text-white" id="c-s-idl">Idle / Standby</span></div>
+          </div>
+        </div>
+        <div>
+          <div class="mono text-sm text-white mb-2" id="c-l-protect">BMS PROTECTION</div>
+          <div class="space-y-1" id="d-prot">
+            <div class="mono text-sm text-green-400"><i class="fas fa-check-circle mr-1"></i><span id="c-l-norm">All Normal</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data fields -->
+      <div class="stitle" id="c-l-params">LIVE PARAMETERS</div>
+      <div id="d-fields" class="mono text-sm text-slate-200">Click a device to view live data</div>
+
+      <!-- TECHNICAL DETAILS COLLAPSIBLE -->
+      <div class="mt-4 pt-3 border-t border-white/10">
+        <button onclick="toggleTech()" id="tech-toggle"
+          class="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all"
+          style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25)">
+          <div class="flex items-center gap-2">
+            <i class="fas fa-microchip text-blue-300 text-sm"></i>
+            <span class="os text-xs text-blue-300 tracking-widest">TECHNICAL DETAILS</span>
+            <span class="mono text-xs text-slate-400">Cell V · Temp · BMS</span>
+          </div>
+          <i class="fas fa-chevron-down text-blue-400 text-xs" id="tech-chevron"></i>
+        </button>
+        <div id="tech-panel" style="display:none" class="mt-3 space-y-4">
+
+          <!-- Cell Voltages -->
+          <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08);border-radius:.8rem;padding:1.2rem">
+            <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <span class="os text-xs text-blue-300 tracking-widest">CELL VOLTAGES / 电芯电压</span>
+              <div class="flex gap-3 mono text-xs">
+                <span>Min:<span class="text-red-400 font-bold ml-1" id="cv-min">--</span>V</span>
+                <span>Avg:<span class="text-white font-bold ml-1" id="cv-avg">--</span>V</span>
+                <span>Max:<span class="text-green-400 font-bold ml-1" id="cv-max">--</span>V</span>
+                <span>ΔV:<span class="text-yellow-400 font-bold ml-1" id="cv-dv">--</span>mV</span>
+              </div>
+            </div>
+            <div id="cell-grid" class="grid gap-1 mb-3" style="grid-template-columns:repeat(8,1fr)"></div>
+            <div id="cell-bars" class="flex items-end gap-px" style="height:56px"></div>
+          </div>
+
+          <!-- Temperature -->
+          <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08);border-radius:.8rem;padding:1.2rem">
+            <div class="os text-xs text-blue-300 tracking-widest mb-3">TEMPERATURE SENSORS / 温度传感器</div>
+            <div id="temp-grid" class="grid grid-cols-2 gap-2"></div>
+          </div>
+
+          <!-- BMS Protection -->
+          <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08);border-radius:.8rem;padding:1.2rem">
+            <div class="os text-xs text-blue-300 tracking-widest mb-3">BMS PROTECTION / BMS保护状态</div>
+            <div id="bms-grid" class="grid grid-cols-2 gap-2"></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- SOC trend chart -->
+    <div class="panel">
+      <div class="flex justify-between items-center mb-3">
+        <span class="stitle mb-0" id="c-l-trend">SOC LIVE TREND</span>
+        <span class="mono text-xs text-slate-200" id="c-l-readings">Last 20 readings</span>
+      </div>
+      <div style="height:150px"><canvas id="c-chart"></canvas></div>
+    </div>
+
+    <!-- Active alarms -->
+    <div class="panel">
+      <div class="stitle" id="c-l-alarms">ACTIVE ALARMS</div>
+      <div id="d-alarms">
+        <div class="mono text-sm text-slate-200"><i class="fas fa-check-circle text-green-400 mr-2"></i><span id="c-no-alm">No active alarms — All parameters normal</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT -->
+  <div class="col-span-12 md:col-span-3 space-y-4">
+
+    <!-- Fleet KPI -->
+    <div class="panel">
+      <div class="stitle" id="c-l-kpi">FLEET KPI</div>
+      <div class="space-y-3">
+        <div class="frow"><span class="fkey" id="c-k1">Avg SOC</span><span class="fval" id="k-soc">--%</span></div>
+        <div class="frow"><span class="fkey" id="c-k2">Total Energy</span><span class="fval text-blue-300" id="k-nrg">-- kWh</span></div>
+        <div class="frow"><span class="fkey" id="c-k3">Online</span><span class="fval text-green-300" id="k-onl">--</span></div>
+        <div class="frow"><span class="fkey" id="c-k4">Alarms Today</span><span class="fval text-red-300" id="k-alm">0</span></div>
+        <div class="frow"><span class="fkey" id="c-k5">Grid Freq</span><span class="fval text-yellow-300" id="k-frq">-- Hz</span></div>
+        <div class="frow" style="border:none"><span class="fkey" id="c-k6">CO₂ Saved</span><span class="fval text-emerald-300" id="k-co2">-- kg</span></div>
+      </div>
+    </div>
+
+    <!-- Total fleet savings -->
+    <div class="savings-card">
+      <div class="stitle mb-2" id="c-l-flsave">FLEET COST SAVINGS</div>
+      <div class="text-center">
+        <div class="os text-3xl font-bold text-green-400" id="k-save">₱ --</div>
+        <div class="mono text-sm text-white mt-1" id="c-l-savesub">Total electricity cost avoided</div>
+        <div class="mono text-xs text-green-300 mt-1" id="k-save-rate">@ ₱12.00/kWh (Meralco avg)</div>
+      </div>
+      <!-- Per-country rate selector -->
+      <div class="mt-3 pt-3 border-t border-green-500/20">
+        <div class="mono text-xs text-white mb-2" id="c-l-region">SELECT REGION</div>
+        <select id="rate-sel" onchange="updateSavings()" class="w-full bg-black/40 border border-green-500/30 text-white text-xs mono rounded-lg px-3 py-2 outline-none">
+          <option value="12,PHP,₱">Philippines (₱12.00/kWh)</option>
+          <option value="0.32,SGD,S$">Singapore (S$0.32/kWh)</option>
+          <option value="4500,VND,₫">Vietnam (₫4,500/kWh)</option>
+          <option value="0.57,MYR,RM">Malaysia (RM0.57/kWh)</option>
+          <option value="0.15,USD,$">USA ($0.15/kWh)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Fleet SOC snapshot -->
+    <div class="panel">
+      <div class="stitle" id="c-l-snap">FLEET SOC SNAPSHOT</div>
+      <div id="c-fleet-soc" class="space-y-3"></div>
+    </div>
+
+    <!-- Alarm history -->
+    <div class="panel">
+      <div class="stitle" id="c-l-hist">ALARM HISTORY</div>
+      <div id="c-alarm-hist" class="space-y-2">
+        <div class="mono text-xs text-slate-200" id="c-no-hist">No recent alarms</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════
+// CONFIG
+// ═══════════════════════════════
+const TB = 'https://monitor.coretect-microgrid.com';
+
+const META = {
+  'ESS-PH-001':  {type:'ess', loc:'Palawan Island, PH',         lat:9.8349, lng:118.7384},
+  'ESS-PH-002':  {type:'ess', loc:'Cebu Island, PH',            lat:10.3157,lng:123.8854},
+  'ESS-PH-003':  {type:'ess', loc:'Quezon Province, PH',        lat:14.0313,lng:122.1116},
+  'GOLF-001':    {type:'golf',loc:'Cebu Golf & Country Club',   lat:10.3312,lng:123.9071},
+  'GOLF-002':    {type:'golf',loc:'Cebu Golf & Country Club',   lat:10.3315,lng:123.9075},
+  'GOLF-003':    {type:'golf',loc:'Cebu Golf & Country Club',   lat:10.3308,lng:123.9068},
+  'GOLF-004':    {type:'golf',loc:'Manila Golf & Country Club', lat:14.5547,lng:121.0244},
+  'GOLF-005':    {type:'golf',loc:'Manila Golf & Country Club', lat:14.5549,lng:121.0247},
+  'BESS-COM-001':{type:'bess',loc:'Makati Commercial District', lat:14.5547,lng:121.0244},
+};
+
+// electricity rates per region [rate, currency_code, symbol]
+let elecRate = 12, elecSym = '₱';
+
+// ═══════════════════════════════
+// I18N
+// ═══════════════════════════════
+let lang = 'en';
+const TX = {
+en:{
+  'g-sub':'GLOBAL ENERGY CONTROL CENTER','g-live':'LIVE','g-clogin':'CLIENT LOGIN',
+  'g-l-dev':'ONLINE DEVICES','g-l-nrg':'TOTAL ENERGY STORED','g-l-soc':'AVG SOC',
+  'g-l-co2':'CO₂ SAVED','g-l-frq':'GRID FREQ (PH)','g-l-save':'TOTAL COST SAVINGS',
+  'g-l-fleet':'FLEET STATUS','g-l-chart':'FLEET SOC OVERVIEW',
+  'g-cta-t':'Become a CoreTect SaaS Client',
+  'g-cta-s':'Get 24/7 monitoring, WhatsApp/Telegram alerts, multi-site management & monthly reports.',
+  'g-btn-p':'VIEW SAAS PLANS','g-btn-l':'CLIENT LOGIN',
+  'l-sub':'Remote Asset Monitoring & Early Warning','l-uid':'OPERATOR ID','l-pwd':'ACCESS CODE',
+  'l-btxt':'AUTHENTICATE','l-guest':'Guest View',
+  'h-l-act':'ACTIVE','h-l-wrn':'WARNING','h-l-save':'TOTAL SAVINGS',
+  'c-l-fleet':'FLEET','c-l-soc':'SOC','c-l-soh':'SOH','c-l-pwr':'POWER','c-l-tmp':'TEMP',
+  'c-l-charge':'STATE OF CHARGE','c-l-devsave':'ESTIMATED COST SAVINGS',
+  'c-l-savebasis':'Based on local electricity rate',
+  'c-l-bstatus':'BATTERY STATUS','c-s-chg':'Charging','c-s-dsg':'Discharging','c-s-idl':'Idle / Standby',
+  'c-l-protect':'BMS PROTECTION','c-l-norm':'All Normal',
+  'c-l-params':'LIVE PARAMETERS','c-l-trend':'SOC LIVE TREND','c-l-readings':'Last 20 readings',
+  'c-l-alarms':'ACTIVE ALARMS','c-no-alm':'No active alarms — All parameters normal',
+  'c-l-kpi':'FLEET KPI','c-k1':'Avg SOC','c-k2':'Total Energy','c-k3':'Online',
+  'c-k4':'Alarms Today','c-k5':'Grid Freq','c-k6':'CO₂ Saved',
+  'c-l-flsave':'FLEET COST SAVINGS','c-l-savesub':'Total electricity cost avoided',
+  'c-l-region':'SELECT REGION','c-l-snap':'FLEET SOC SNAPSHOT',
+  'c-l-hist':'ALARM HISTORY','c-no-hist':'No recent alarms',
+  'g-save-cur':'₱ SAVED',
+  'g-lbtn':'中文','l-lbtn':'中文','c-lbtn':'中文',
+},
+cn:{
+  'g-sub':'全球能源调度中心','g-live':'实时','g-clogin':'客户登录',
+  'g-l-dev':'在线设备','g-l-nrg':'总储能量','g-l-soc':'平均电量',
+  'g-l-co2':'碳减排量','g-l-frq':'电网频率(菲)','g-l-save':'节省电费总计',
+  'g-l-fleet':'车队状态','g-l-chart':'车队电量总览',
+  'g-cta-t':'成为CoreTect SaaS订阅客户',
+  'g-cta-s':'订阅后享有24小时监控、WhatsApp/Telegram告警、多站点管理和月度报告。',
+  'g-btn-p':'查看订阅方案','g-btn-l':'客户登录',
+  'l-sub':'远程资产监控与预警系统','l-uid':'操作员账号','l-pwd':'访问密码',
+  'l-btxt':'登录认证','l-guest':'访客模式',
+  'h-l-act':'在线','h-l-wrn':'预警','h-l-save':'节省电费',
+  'c-l-fleet':'设备列表','c-l-soc':'电量','c-l-soh':'健康度','c-l-pwr':'功率','c-l-tmp':'温度',
+  'c-l-charge':'当前荷电状态','c-l-devsave':'预估节省电费',
+  'c-l-savebasis':'基于当地平均电价计算',
+  'c-l-bstatus':'电池状态','c-s-chg':'充电中','c-s-dsg':'放电中','c-s-idl':'待机',
+  'c-l-protect':'BMS保护状态','c-l-norm':'所有保护正常',
+  'c-l-params':'实时参数','c-l-trend':'电量实时趋势','c-l-readings':'最近20次读数',
+  'c-l-alarms':'当前告警','c-no-alm':'无告警 — 所有参数正常',
+  'c-l-kpi':'车队KPI','c-k1':'平均电量','c-k2':'总储能','c-k3':'在线设备',
+  'c-k4':'今日告警','c-k5':'电网频率','c-k6':'碳减排',
+  'c-l-flsave':'车队节省电费','c-l-savesub':'累计节省电费总额',
+  'c-l-region':'选择地区','c-l-snap':'各设备电量',
+  'c-l-hist':'告警历史','c-no-hist':'近期无告警',
+  'g-save-cur':'₱ 已节省',
+  'g-lbtn':'EN','l-lbtn':'EN','c-lbtn':'EN',
+}};
+
+function toggleLang(){ lang=lang==='en'?'cn':'en'; applyLang(); }
+function applyLang(){
+  const t=TX[lang];
+  Object.keys(t).forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=t[id];});
+}
+
+// ═══════════════════════════════
+// CLOCK
+// ═══════════════════════════════
+setInterval(()=>{
+  const s=new Date().toLocaleTimeString('en-GB');
+  ['g-clk','c-clk'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=s;});
+},1000);
+
+// ═══════════════════════════════
+// ROUTER
+// ═══════════════════════════════
+window.addEventListener('load',()=>{
+  const mode=new URLSearchParams(location.search).get('mode')||'guest';
+  if(mode==='client'){
+    document.getElementById('login-screen').style.display='block';
+  } else {
+    document.getElementById('guest-screen').style.display='block';
+    initGuestChart(); loadGuestData();
+    setInterval(loadGuestData,30000);
+  }
+  applyLang();
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Enter'&&document.getElementById('login-screen').style.display!=='none') doLogin();
+  });
+});
+
+// ═══════════════════════════════
+// SAVINGS CALC
+// ═══════════════════════════════
+function updateSavings(){
+  const sel=document.getElementById('rate-sel');
+  if(!sel)return;
+  const [rate,code,sym]=sel.value.split(',');
+  elecRate=parseFloat(rate); elecSym=sym;
+
+  // Update rate label
+  const rl=document.getElementById('k-save-rate');
+  if(rl) rl.textContent=`@ ${sym}${rate}/kWh`;
+
+  // Recalculate
+  calcFleetSavings();
+  if(selId) calcDeviceSavings(devices.find(d=>d.id===selId));
+}
+
+function calcDeviceSavings(dev){
+  if(!dev)return;
+  const kwh=parseFloat(dev.tel.total_discharge_kwh)||0;
+  const saved=(kwh*elecRate).toFixed(0);
+  const fmt=parseInt(saved).toLocaleString();
+  const el=document.getElementById('d-save');
+  const lb=document.getElementById('d-save-lbl');
+  if(el) el.textContent=`${elecSym} ${fmt}`;
+  if(lb) lb.textContent=`${lang==='cn'?'节省':'saved'} (${elecSym}${elecRate}/kWh)`;
+}
+
+function calcFleetSavings(){
+  const totalKwh=devices.reduce((sum,d)=>sum+(parseFloat(d.tel.total_discharge_kwh)||0),0);
+  const saved=(totalKwh*elecRate).toFixed(0);
+  const fmt=parseInt(saved).toLocaleString();
+  const ks=document.getElementById('k-save');
+  const hs=document.getElementById('h-save');
+  const gs=document.getElementById('g-save');
+  const gc=document.getElementById('g-save-cur');
+  if(ks) ks.textContent=`${elecSym} ${fmt}`;
+  if(hs) hs.textContent=`${elecSym} ${fmt}`;
+  if(gs) gs.textContent=fmt;
+  if(gc) gc.textContent=`${elecSym} ${lang==='cn'?'已节省':'SAVED'}`;
+}
+
+// ═══════════════════════════════
+// AUTH
+// ═══════════════════════════════
+let jwt='', devices=[], selId=null, devFilter='all';
+let cChart=null, socHist={}, refTmr=null;
+let alarmHistory=[];
+
+async function doLogin(){
+  const btn=document.getElementById('l-btn');
+  const user=document.getElementById('l-user').value.trim();
+  const pass=document.getElementById('l-pass').value.trim();
+  const errEl=document.getElementById('l-err');
+  if(!user||!pass){showErr(lang==='cn'?'请输入账号和密码':'Please enter credentials.');return;}
+  btn.disabled=true;
+  btn.querySelector('span').textContent=lang==='cn'?'认证中...':'AUTHENTICATING...';
+  errEl.classList.add('hidden');
+  try{
+    const r=await fetch(`${TB}/api/auth/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:user,password:pass})});
+    if(!r.ok)throw new Error();
+    jwt=(await r.json()).token;
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('client-screen').style.display='block';
+    initClientChart(); loadDevices();
+    refTmr=setInterval(refreshAll,30000);
+  }catch(e){
+    showErr(lang==='cn'?'账号或密码错误':'Authentication failed. Check credentials.');
+    btn.disabled=false; btn.querySelector('span').textContent=TX[lang]['l-btxt'];
+  }
+}
+function showErr(msg){const e=document.getElementById('l-err');e.querySelector('span').textContent=msg;e.classList.remove('hidden');}
+function doLogout(){clearInterval(refTmr);jwt='';devices=[];selId=null;document.getElementById('client-screen').style.display='none';document.getElementById('login-screen').style.display='block';document.getElementById('l-pass').value='';}
+
+// ═══════════════════════════════
+// TB API
+// ═══════════════════════════════
+async function tbGet(path){
+  const r=await fetch(`${TB}${path}`,{headers:{'X-Authorization':`Bearer ${jwt}`}});
+  if(!r.ok)throw new Error(r.status);
+  return r.json();
+}
+
+const CELL_KEYS = Array.from({length:16},(_,i)=>`cell_v_${String(i+1).padStart(2,'0')}`).join(',');
+const TEMP_KEYS = 'temp1,temp2,temp3,temp_mos,temperature_mos';
+const KEYS='soc,soh,status,pack_voltage,pack_current,power_kw,power_w,delta_v,temperature,temperature_avg,temperature_max,temperature_min,energy_stored_kwh,capacity_kwh,cycle_count,total_discharge_kwh,total_co2_saved_kg,grid_voltage_v,grid_frequency_hz,alarm_high_temp,alarm_delta_v,alarm_low_soc,alarm_overtemp,alarm_grid_abnormal,alarm_over_voltage,alarm_under_voltage,alarm_over_current,alarm_short_circuit,alarm_mos_fault,alarm_comm_fault,speed_kmh,latitude,longitude,fault_code,remaining_capacity,full_capacity,'+CELL_KEYS+','+TEMP_KEYS;
+
+async function loadDevices(){
+  try{
+    const d=await tbGet('/api/tenant/devices?pageSize=50&page=0');
+    devices=(d.data||[]).map(x=>({id:x.id.id,name:x.name,tel:{},meta:META[x.name]||{type:'ess',loc:'Philippines',lat:12,lng:122}}));
+    document.getElementById('c-cnt').textContent=`${devices.length} devices`;
+    await refreshAll();
+  }catch(e){console.error(e);}
+}
+
+async function fetchTel(dev){
+  try{
+    const d=await tbGet(`/api/plugins/telemetry/DEVICE/${dev.id}/values/timeseries?keys=${KEYS}`);
+    const t={};
+    for(const[k,v]of Object.entries(d)) t[k]=v&&v[0]?isNaN(v[0].value)?v[0].value:parseFloat(v[0].value):null;
+    dev.tel=t;
+    if(!socHist[dev.name])socHist[dev.name]=[];
+    if(t.soc!=null){socHist[dev.name].push(t.soc);if(socHist[dev.name].length>20)socHist[dev.name].shift();}
+
+    // Check alarms and log to history
+    checkAlarms(dev);
+  }catch(e){}
+}
+
+function checkAlarms(dev){
+  const t=dev.tel;
+  const now=new Date().toLocaleTimeString('en-GB');
+  const checks=[
+    {key:'alarm_high_temp',    msg:`🔥 ${dev.name}: High Temperature`,   level:1},
+    {key:'alarm_overtemp',     msg:`🔥 ${dev.name}: Over Temperature`,    level:1},
+    {key:'alarm_delta_v',      msg:`⚠ ${dev.name}: Cell Imbalance (ΔV)`, level:2},
+    {key:'alarm_low_soc',      msg:`⚠ ${dev.name}: Low Battery`,         level:2},
+    {key:'alarm_grid_abnormal',msg:`⚡ ${dev.name}: Grid Freq Abnormal`,  level:2},
+  ];
+  checks.forEach(c=>{
+    if(t[c.key]==1){
+      const exists=alarmHistory.find(a=>a.dev===dev.name&&a.key===c.key);
+      if(!exists) alarmHistory.unshift({dev:dev.name,key:c.key,msg:c.msg,time:now,level:c.level});
+    }
+  });
+  if(alarmHistory.length>20) alarmHistory=alarmHistory.slice(0,20);
+}
+
+async function refreshAll(){
+  const sp=document.getElementById('c-spin');
+  if(sp)sp.classList.add('fa-spin');
+  try{
+    await Promise.all(devices.map(fetchTel));
+    renderDevList(); updateHeader(); updateKPIs();
+    renderFleetSOC(); renderAlarmHistory();
+    calcFleetSavings();
+    if(selId)showDetail(selId);
+    const u=document.getElementById('c-upd');
+    if(u)u.textContent=(lang==='cn'?'更新于 ':'UPDATED ')+new Date().toLocaleTimeString('en-GB');
+  }catch(e){console.error(e);}
+  if(sp)sp.classList.remove('fa-spin');
+}
+
+// ═══════════════════════════════
+// RENDER DEVICE LIST
+// ═══════════════════════════════
+function filterDev(type,btn){
+  devFilter=type;
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderDevList();
+}
+
+function renderDevList(){
+  const list=devices.filter(d=>devFilter==='all'||d.meta.type===devFilter||(devFilter==='bess'&&d.meta.type==='bess'));
+  const el=document.getElementById('c-devlist');if(!el)return;
+  el.innerHTML=list.map(d=>{
+    const t=d.tel;
+    const soc=t.soc!=null?parseFloat(t.soc):null;
+    const st=(t.status||'').toLowerCase();
+    const anyA=t.alarm_high_temp==1||t.alarm_overtemp==1||t.alarm_delta_v==1||t.alarm_low_soc==1;
+    const cls=anyA?'danger':soc!=null&&soc<20?'warn':'';
+    const sc=soc==null?'#94a3b8':soc>=60?'#00ff99':soc>=30?'#ffcc00':'#ff3366';
+    const lc=anyA?'lr':st==='charging'?'lg':st==='discharging'?'ly':'loff';
+    const icon=d.meta.type==='golf'?'fa-car-battery':d.meta.type==='bess'?'fa-building':'fa-bolt';
+    const alarmCount=alarmHistory.filter(a=>a.dev===d.name).length;
+    return`<div class="dcard ${cls} ${d.id===selId?'sel':''}" onclick="showDetail('${d.id}')">
+      <div class="flex items-center justify-between mb-1">
+        <div class="flex items-center gap-2">
+          <i class="fas ${icon} text-blue-300 text-sm"></i>
+          <span class="os text-sm font-bold text-white">${d.name}</span>
+          ${alarmCount>0?`<span class="text-red-400 text-xs mono">(${alarmCount}!)</span>`:''}
+        </div>
+        <div class="led ${lc}"></div>
+      </div>
+      <div class="mono text-xs text-slate-200 mb-2">${d.meta.loc}</div>
+      <div class="flex justify-between items-center mb-1">
+        <span class="mono text-sm text-white">SOC</span>
+        <span class="os text-base font-bold" style="color:${sc}">${soc!=null?soc.toFixed(1):'--'}%</span>
+      </div>
+      <div class="sbar-bg"><div class="sbar" style="width:${soc||0}%;background:${sc}"></div></div>
+      <div class="flex justify-between items-center mt-2 mono text-xs text-slate-200">
+        <span>${t.status||'--'}</span>
+        <span>${t.temperature_avg!=null?parseFloat(t.temperature_avg).toFixed(1)+'°C':t.temperature!=null?parseFloat(t.temperature).toFixed(1)+'°C':'--'}</span>
+      </div>
+      ${anyA?`<div class="mt-2 mono text-xs text-red-400"><i class="fas fa-exclamation-triangle mr-1"></i>${lang==='cn'?'告警激活':'ALARM ACTIVE'}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════
+// DETAIL
+// ═══════════════════════════════
+const FMAP_EN={pack_voltage:'Pack Voltage (V)',pack_current:'Pack Current (A)',power_kw:'Power (kW)',power_w:'Power (W)',delta_v:'Delta-V (V)',temperature_max:'Temp Max (°C)',temperature_avg:'Temp Avg (°C)',temperature_min:'Temp Min (°C)',temperature:'Temperature (°C)',cycle_count:'Cycle Count',total_discharge_kwh:'Total Discharge (kWh)',total_co2_saved_kg:'CO₂ Saved (kg)',grid_voltage_v:'Grid Voltage (V)',grid_frequency_hz:'Grid Freq (Hz)',speed_kmh:'Speed (km/h)',fault_code:'Fault Code',latitude:'Latitude',longitude:'Longitude'};
+const FMAP_CN={pack_voltage:'总电压 (V)',pack_current:'总电流 (A)',power_kw:'功率 (kW)',power_w:'功率 (W)',delta_v:'压差 (V)',temperature_max:'最高温度 (°C)',temperature_avg:'平均温度 (°C)',temperature_min:'最低温度 (°C)',temperature:'温度 (°C)',cycle_count:'循环次数',total_discharge_kwh:'累计放电 (kWh)',total_co2_saved_kg:'碳减排 (kg)',grid_voltage_v:'电网电压 (V)',grid_frequency_hz:'电网频率 (Hz)',speed_kmh:'速度 (km/h)',fault_code:'故障码',latitude:'纬度',longitude:'经度'};
+const SKIP=['soc','soh','status','alarm_high_temp','alarm_delta_v','alarm_low_soc','alarm_overtemp','alarm_grid_abnormal','energy_stored_kwh','capacity_kwh'];
+
+function showDetail(id){
+  selId=id;
+  const dev=devices.find(d=>d.id===id);if(!dev)return;
+  const t=dev.tel;
+
+  document.getElementById('d-name').textContent=dev.name;
+  document.getElementById('d-loc').textContent=dev.meta.loc;
+
+  const soc=parseFloat(t.soc)||0;
+  const soh=parseFloat(t.soh)||0;
+  const pwr=t.power_kw!=null?t.power_kw:(t.power_w!=null?t.power_w/1000:null);
+  const tmp=t.temperature_avg!=null?t.temperature_avg:t.temperature;
+
+  document.getElementById('d-soc').textContent=soc.toFixed(1);
+  document.getElementById('d-soh').textContent=soh.toFixed(1);
+  document.getElementById('d-pwr').textContent=pwr!=null?Math.abs(pwr).toFixed(2):'--';
+  document.getElementById('d-tmp').textContent=tmp!=null?parseFloat(tmp).toFixed(1):'--';
+
+  // SOC color
+  const sc=soc>=60?'var(--safe)':soc>=30?'var(--warn)':'var(--danger)';
+  const sb=document.getElementById('d-sbar');
+  sb.style.width=soc+'%'; sb.style.background=sc;
+
+  // Energy
+  document.getElementById('d-nrg').textContent=
+    (t.energy_stored_kwh!=null?parseFloat(t.energy_stored_kwh).toFixed(1):'--')+' / '+
+    (t.capacity_kwh!=null?parseFloat(t.capacity_kwh).toFixed(0):'--')+' kWh';
+
+  // Badge
+  const st=(t.status||'UNKNOWN').toLowerCase();
+  const bmap={charging:'bc',discharging:'bd',standby:'bs',peak_shaving:'bb',idle:'bs'};
+  document.getElementById('d-badge').innerHTML=`<span class="badge ${bmap[st]||'bs'}">${t.status||'UNKNOWN'}</span>`;
+
+  // Battery status LEDs
+  const sc2=document.getElementById('s-chg');
+  const sd=document.getElementById('s-dsg');
+  const si=document.getElementById('s-idl');
+  if(sc2){sc2.className='led '+(st==='charging'?'lg':'loff');}
+  if(sd){sd.className='led '+(st==='discharging'?'ly':'loff');}
+  if(si){si.className='led '+(st==='standby'||st==='idle'?'loff':'loff');}
+
+  // BMS Protection
+  const prots=[];
+  if(t.alarm_overtemp==1)prots.push({icon:'fa-thermometer-full',en:'Over Temperature',cn:'过温保护',c:'text-red-400'});
+  if(t.alarm_high_temp==1)prots.push({icon:'fa-thermometer-half',en:'High Temperature',cn:'高温告警',c:'text-yellow-400'});
+  if(t.alarm_delta_v==1)prots.push({icon:'fa-exclamation-triangle',en:'Cell Imbalance',cn:'压差过大',c:'text-yellow-400'});
+  if(t.alarm_low_soc==1)prots.push({icon:'fa-battery-empty',en:'Low Battery',cn:'电量不足',c:'text-orange-400'});
+  if(t.alarm_grid_abnormal==1)prots.push({icon:'fa-plug',en:'Grid Abnormal',cn:'电网异常',c:'text-red-400'});
+  const pe=document.getElementById('d-prot');
+  if(pe){
+    pe.innerHTML=prots.length===0
+      ?`<div class="mono text-sm text-green-400"><i class="fas fa-check-circle mr-1"></i>${TX[lang]['c-l-norm']}</div>`
+      :prots.map(p=>`<div class="mono text-sm ${p.c}"><i class="fas ${p.icon} mr-1"></i>${lang==='cn'?p.cn:p.en}</div>`).join('');
+  }
+
+  // Savings
+  calcDeviceSavings(dev);
+
+  // Data fields (no cell voltages)
+  const fmap=lang==='cn'?FMAP_CN:FMAP_EN;
+  const html=Object.entries(t)
+    .filter(([k])=>!SKIP.includes(k)&&!k.startsWith('cell_v')&&t[k]!=null)
+    .map(([k,v])=>{
+      const label=fmap[k]||k.replace(/_/g,' ').toUpperCase();
+      const val=typeof v==='number'?(Number.isInteger(v)?v:v.toFixed(3)):v;
+      let vc='#fff';
+      if(k==='delta_v'&&v>0.05)vc='#f87171';
+      else if(k==='temperature_max'&&v>45)vc='#f87171';
+      else if(k==='soc'&&v<20)vc='#f87171';
+      return`<div class="frow"><span class="fkey">${label}</span><span class="fval" style="color:${vc}">${val}</span></div>`;
+    }).join('');
+  document.getElementById('d-fields').innerHTML=html||`<div class="mono text-sm text-slate-200">${lang==='cn'?'← 点击左侧设备':'← Click a device to view'}</div>`;
+
+  // Alarms panel
+  const alarms=[];
+  if(t.alarm_high_temp==1||t.alarm_overtemp==1)
+    alarms.push({icon:'fa-thermometer-full',en:'🔥 High Temperature Alarm',cn:'🔥 高温告警',sub:`Temp: ${tmp?parseFloat(tmp).toFixed(1):'--'}°C`,level:1});
+  if(t.alarm_delta_v==1)
+    alarms.push({icon:'fa-exclamation-triangle',en:'⚠ Cell Voltage Imbalance',cn:'⚠ 压差告警',sub:`ΔV: ${t.delta_v?parseFloat(t.delta_v).toFixed(4):'--'}V`,level:2});
+  if(t.alarm_low_soc==1)
+    alarms.push({icon:'fa-battery-empty',en:'⚠ Low Battery Warning',cn:'⚠ 低电量预警',sub:`SOC: ${soc.toFixed(1)}%`,level:2});
+  if(t.alarm_grid_abnormal==1)
+    alarms.push({icon:'fa-plug',en:'⚡ Grid Frequency Abnormal',cn:'⚡ 电网频率异常',sub:`Freq: ${t.grid_frequency_hz?parseFloat(t.grid_frequency_hz).toFixed(2):'--'}Hz`,level:2});
+  const ae=document.getElementById('d-alarms');
+  ae.innerHTML=alarms.length===0
+    ?`<div class="mono text-sm text-slate-200"><i class="fas fa-check-circle text-green-400 mr-2"></i>${TX[lang]['c-no-alm']}</div>`
+    :alarms.map(a=>`<div class="${a.level===1?'arow':'arow2'} flex items-start gap-3">
+        <i class="fas ${a.icon} ${a.level===1?'text-red-400':'text-yellow-400'} mt-0.5"></i>
+        <div><div class="text-sm font-bold ${a.level===1?'text-red-300':'text-yellow-300'}">${lang==='cn'?a.cn:a.en}</div>
+        <div class="mono text-xs text-white">${a.sub}</div></div>
+      </div>`).join('');
+
+  updateClientChart(dev.name);
+  renderDevList();
+  // Re-render tech panel if it's open
+  if(techOpen) renderTechDetails(t);
+}
+
+// ═══════════════════════════════
+// HEADER + KPI
+// ═══════════════════════════════
+function updateHeader(){
+  let ac=0,wn=0,al=0;
+  devices.forEach(d=>{
+    const t=d.tel;
+    const any=t.alarm_high_temp==1||t.alarm_overtemp==1||t.alarm_delta_v==1||t.alarm_low_soc==1||t.alarm_grid_abnormal==1;
+    if(any)al++;else if(parseFloat(t.soc)<20)wn++;else ac++;
+  });
+  document.getElementById('h-act').textContent=ac;
+  document.getElementById('h-wrn').textContent=wn;
+  document.getElementById('h-alm').textContent=al;
+}
+
+function updateKPIs(){
+  const socs=devices.map(d=>parseFloat(d.tel.soc)).filter(v=>!isNaN(v));
+  const nrgs=devices.map(d=>parseFloat(d.tel.energy_stored_kwh)).filter(v=>!isNaN(v));
+  const co2s=devices.map(d=>parseFloat(d.tel.total_co2_saved_kg)).filter(v=>!isNaN(v));
+  const frqs=devices.map(d=>parseFloat(d.tel.grid_frequency_hz)).filter(v=>!isNaN(v));
+  const onl=devices.filter(d=>Object.keys(d.tel).length>0).length;
+  const totalAlarms=alarmHistory.length;
+  document.getElementById('k-soc').textContent=(socs.length?(socs.reduce((a,b)=>a+b,0)/socs.length).toFixed(1):'--')+'%';
+  document.getElementById('k-nrg').textContent=(nrgs.length?nrgs.reduce((a,b)=>a+b,0).toFixed(1):'--')+' kWh';
+  document.getElementById('k-onl').textContent=onl+'/'+devices.length;
+  document.getElementById('k-alm').textContent=totalAlarms;
+  document.getElementById('k-frq').textContent=(frqs.length?(frqs.reduce((a,b)=>a+b,0)/frqs.length).toFixed(2):'--')+' Hz';
+  document.getElementById('k-co2').textContent=(co2s.length?co2s.reduce((a,b)=>a+b,0).toFixed(0):'--')+' kg';
+}
+
+// ═══════════════════════════════
+// TECH DETAILS PANEL
+// ═══════════════════════════════
+let techOpen = false;
+
+function toggleTech(){
+  techOpen = !techOpen;
+  const panel = document.getElementById('tech-panel');
+  const chevron = document.getElementById('tech-chevron');
+  if(panel){
+    panel.style.display = techOpen ? 'block' : 'none';
+    if(chevron) chevron.style.transform = techOpen ? 'rotate(180deg)' : '';
+  }
+  // Render tech data if we have a selected device
+  if(techOpen && selId){
+    const dev = devices.find(d=>d.id===selId);
+    if(dev) renderTechDetails(dev.tel);
+  }
+}
+
+function renderTechDetails(t){
+  // ── Cell Voltages ──────────────────────
+  const cellKeys = Array.from({length:16},(_,i)=>`cell_v_${String(i+1).padStart(2,'0')}`);
+  const cellVals = cellKeys.map(k=>t[k]!=null?parseFloat(t[k]):null).filter(v=>v!==null);
+
+  if(cellVals.length > 0){
+    const minV = Math.min(...cellVals);
+    const maxV = Math.max(...cellVals);
+    const avgV = cellVals.reduce((a,b)=>a+b,0)/cellVals.length;
+    const dv   = (maxV - minV) * 1000;
+
+    document.getElementById('cv-min').textContent = minV.toFixed(3);
+    document.getElementById('cv-max').textContent = maxV.toFixed(3);
+    document.getElementById('cv-avg').textContent = avgV.toFixed(3);
+    document.getElementById('cv-dv').textContent  = dv.toFixed(1);
+
+    // Cell number grid
+    const grid = document.getElementById('cell-grid');
+    if(grid){
+      grid.innerHTML = cellVals.map((v,i)=>{
+        const pct = ((v - minV)/(maxV - minV + 0.0001))*100;
+        const isMin = v === minV;
+        const isMax = v === maxV;
+        const color = isMin ? '#f87171' : isMax ? '#34d399' : '#93c5fd';
+        const bg    = isMin ? 'rgba(239,68,68,0.15)' : isMax ? 'rgba(52,211,153,0.12)' : 'rgba(0,0,0,0.3)';
+        return `<div style="background:${bg};border:1px solid ${color}33;border-radius:6px;padding:5px 2px;text-align:center">
+          <div style="font-family:monospace;font-size:.58rem;color:#64748b;margin-bottom:2px">C${i+1}</div>
+          <div style="font-family:monospace;font-size:.72rem;font-weight:bold;color:${color}">${v.toFixed(3)}</div>
+          <div style="height:3px;background:rgba(255,255,255,0.06);border-radius:2px;margin-top:3px;overflow:hidden">
+            <div style="width:${pct}%;height:100%;background:${color};border-radius:2px"></div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    // Bar chart
+    const bars = document.getElementById('cell-bars');
+    if(bars){
+      const range = maxV - minV || 0.001;
+      bars.innerHTML = cellVals.map((v,i)=>{
+        const h = Math.max(8, Math.round(((v-minV)/range)*48)+8);
+        const isMin = v===minV, isMax = v===maxV;
+        const color = isMin?'#f87171':isMax?'#34d399':'#3b82f6';
+        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px">
+          <div style="font-family:monospace;font-size:.42rem;color:#64748b">${v.toFixed(2)}</div>
+          <div style="width:100%;height:${h}px;background:${color};border-radius:2px 2px 0 0;opacity:.85;min-height:6px"
+               title="C${i+1}: ${v.toFixed(3)}V"></div>
+          <div style="font-family:monospace;font-size:.42rem;color:#475569">C${i+1}</div>
+        </div>`;
+      }).join('');
+    }
+  } else {
+    const grid = document.getElementById('cell-grid');
+    if(grid) grid.innerHTML = `<div class="col-span-8 mono text-sm text-slate-400">No cell voltage data available for this device type</div>`;
+  }
+
+  // ── Temperature Sensors ──────────────────────
+  const tempFields = [
+    {key:'temperature_avg', label:'Avg Temp', labelCn:'平均温度'},
+    {key:'temperature_max', label:'Max Temp', labelCn:'最高温度'},
+    {key:'temperature_min', label:'Min Temp', labelCn:'最低温度'},
+    {key:'temp1',          label:'Temp 1',   labelCn:'温度1'},
+    {key:'temp2',          label:'Temp 2',   labelCn:'温度2'},
+    {key:'temp3',          label:'Temp 3',   labelCn:'温度3'},
+    {key:'temp_mos',       label:'MOS Temp', labelCn:'MOS温度'},
+    {key:'temperature_mos',label:'MOS Temp', labelCn:'MOS温度'},
+    {key:'temperature',    label:'Temp',     labelCn:'温度'},
+  ];
+  const tg = document.getElementById('temp-grid');
+  if(tg){
+    const shown = new Set();
+    const rows = tempFields
+      .filter(f=>t[f.key]!=null && !shown.has(f.label) && shown.add(f.label))
+      .map(f=>{
+        const v = parseFloat(t[f.key]);
+        const hot = v > 45;
+        const warm = v > 35;
+        const color = hot?'#f87171':warm?'#fbbf24':'#34d399';
+        const label = lang==='cn'?f.labelCn:f.label;
+        return `<div style="background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.07);border-radius:.6rem;padding:.8rem 1rem;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-family:monospace;font-size:.72rem;color:#94a3b8">${label}</div>
+          </div>
+          <div style="font-family:'Orbitron',sans-serif;font-size:1.1rem;font-weight:700;color:${color}">
+            ${v.toFixed(1)}<span style="font-size:.6rem;color:#64748b">°C</span>
+          </div>
+        </div>`;
+      });
+    tg.innerHTML = rows.length > 0 ? rows.join('') :
+      `<div class="col-span-2 mono text-sm text-slate-400">Using avg/max/min from pack data</div>`;
+  }
+
+  // ── BMS Protection Status ──────────────────────
+  const bmsFields = [
+    {key:'alarm_over_voltage',   en:'Over Voltage',    cn:'过压保护'},
+    {key:'alarm_under_voltage',  en:'Under Voltage',   cn:'欠压保护'},
+    {key:'alarm_over_current',   en:'Over Current',    cn:'过流保护'},
+    {key:'alarm_overtemp',       en:'Over Temperature',cn:'过温保护'},
+    {key:'alarm_high_temp',      en:'High Temp Warn',  cn:'高温预警'},
+    {key:'alarm_short_circuit',  en:'Short Circuit',   cn:'短路保护'},
+    {key:'alarm_mos_fault',      en:'MOS Fault',       cn:'MOS故障'},
+    {key:'alarm_comm_fault',     en:'Comm Fault',      cn:'通讯故障'},
+    {key:'alarm_delta_v',        en:'Cell Imbalance',  cn:'压差过大'},
+    {key:'alarm_low_soc',        en:'Low Battery',     cn:'低电量'},
+    {key:'alarm_grid_abnormal',  en:'Grid Abnormal',   cn:'电网异常'},
+    {key:'fault_code',           en:'Fault Code',      cn:'故障码'},
+  ];
+  const bg2 = document.getElementById('bms-grid');
+  if(bg2){
+    bg2.innerHTML = bmsFields.map(f=>{
+      const v = t[f.key];
+      const label = lang==='cn'?f.cn:f.en;
+      if(f.key==='fault_code'){
+        const fc = v!=null?parseInt(v):0;
+        const ok = fc===0;
+        return `<div style="background:${ok?'rgba(52,211,153,0.08)':'rgba(239,68,68,0.12)'};border:1px solid ${ok?'rgba(52,211,153,0.2)':'rgba(239,68,68,0.3)'};border-radius:.6rem;padding:.7rem 1rem;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-family:monospace;font-size:.72rem;color:#94a3b8">${label}</span>
+          <span style="font-family:monospace;font-size:.8rem;font-weight:bold;color:${ok?'#34d399':'#f87171'}">${fc===0?'OK':fc}</span>
+        </div>`;
+      }
+      const active = v==1;
+      const hasData = v!=null;
+      const bgC  = !hasData?'rgba(30,41,59,0.5)':active?'rgba(239,68,68,0.12)':'rgba(52,211,153,0.08)';
+      const bdC  = !hasData?'rgba(255,255,255,0.05)':active?'rgba(239,68,68,0.3)':'rgba(52,211,153,0.2)';
+      const ic   = active?'fa-exclamation-triangle':'fa-check-circle';
+      const ic_c = !hasData?'#334155':active?'#f87171':'#34d399';
+      const lbl_c= !hasData?'#334155':'#94a3b8';
+      return `<div style="background:${bgC};border:1px solid ${bdC};border-radius:.6rem;padding:.7rem 1rem;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-family:monospace;font-size:.72rem;color:${lbl_c}">${label}</span>
+        <i class="fas ${ic}" style="color:${ic_c};font-size:.8rem"></i>
+      </div>`;
+    }).join('');
+  }
+}
+
+function renderFleetSOC(){
+  const el=document.getElementById('c-fleet-soc');if(!el)return;
+  el.innerHTML=devices.map(d=>{
+    const soc=parseFloat(d.tel.soc)||0;
+    const c=soc>=60?'#00ff99':soc>=30?'#ffcc00':'#ff3366';
+    return`<div>
+      <div class="flex justify-between mono text-sm mb-1">
+        <span class="text-white">${d.name}</span>
+        <span style="color:${c}" class="font-bold">${soc.toFixed(0)}%</span>
+      </div>
+      <div class="sbar-bg" style="height:5px">
+        <div class="sbar" style="width:${soc}%;background:${c};height:5px"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderAlarmHistory(){
+  const el=document.getElementById('c-alarm-hist');if(!el)return;
+  if(alarmHistory.length===0){
+    el.innerHTML=`<div class="mono text-xs text-slate-200" id="c-no-hist">${TX[lang]['c-no-hist']}</div>`;
+    return;
+  }
+  el.innerHTML=alarmHistory.slice(0,8).map(a=>`
+    <div class="flex items-start gap-2 py-1 border-b border-white/5">
+      <i class="fas ${a.level===1?'fa-exclamation-circle text-red-400':'fa-exclamation-triangle text-yellow-400'} mt-0.5 text-xs"></i>
+      <div>
+        <div class="mono text-xs text-white">${a.msg}</div>
+        <div class="mono text-xs text-slate-200">${a.time}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════
+// CHARTS
+// ═══════════════════════════════
+function initClientChart(){
+  const ctx=document.getElementById('c-chart').getContext('2d');
+  cChart=new Chart(ctx,{type:'line',data:{labels:Array(20).fill(''),datasets:[{label:'SOC %',data:Array(20).fill(null),borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.08)',tension:.4,fill:true,pointRadius:2,pointBackgroundColor:'#3b82f6'}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:600},plugins:{legend:{display:false}},scales:{y:{min:0,max:100,grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'rgba(255,255,255,0.6)',font:{family:'Share Tech Mono',size:11}}},x:{grid:{display:false},ticks:{display:false}}}}});
+}
+function updateClientChart(name){
+  if(!cChart)return;
+  const h=socHist[name]||[];
+  const d=Array(20).fill(null);
+  h.forEach((v,i)=>{d[20-h.length+i]=v;});
+  cChart.data.datasets[0].data=d;
+  cChart.data.datasets[0].label=name+' SOC';
+  cChart.update();
+}
+
+// ═══════════════════════════════
+// GUEST
+// ═══════════════════════════════
+let gChart=null;
+const GSOCS=[72,77,54,40,100,100,54,95,35];
+const GNRGS=[46.1,23.3,26,4,8,8,5.4,38,17.1];
+
+function initGuestChart(){
+  const ctx=document.getElementById('g-chart');if(!ctx)return;
+  gChart=new Chart(ctx.getContext('2d'),{type:'bar',data:{labels:Object.keys(META),datasets:[{label:'SOC %',data:GSOCS,backgroundColor:Object.keys(META).map((_,i)=>`hsla(${155+i*15},75%,50%,0.75)`),borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:0,max:100,grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'rgba(255,255,255,0.6)',font:{family:'Share Tech Mono',size:11}}},x:{grid:{display:false},ticks:{color:'rgba(255,255,255,0.6)',font:{family:'Share Tech Mono',size:10},maxRotation:35}}}}});
+}
+
+function loadGuestData(){
+  const avgSoc=(GSOCS.reduce((a,b)=>a+b,0)/GSOCS.length).toFixed(1);
+  const totNrg=GNRGS.reduce((a,b)=>a+b,0).toFixed(1);
+  const totKwh=6800; // simulated total discharge
+  const saved=(totKwh*12).toFixed(0);
+  document.getElementById('g-dev').textContent='9/9';
+  document.getElementById('g-nrg').textContent=totNrg;
+  document.getElementById('g-soc').textContent=avgSoc;
+  document.getElementById('g-co2').textContent='10,220';
+  document.getElementById('g-frq').textContent='60.02';
+  document.getElementById('g-save').textContent=parseInt(saved).toLocaleString();
+
+  const dl=document.getElementById('g-devlist');if(!dl)return;
+  dl.innerHTML=Object.entries(META).map(([name,m],i)=>{
+    const soc=Math.max(5,Math.min(100,GSOCS[i]+Math.random()*3-1.5));
+    const c=soc>=60?'#00ff99':soc>=30?'#ffcc00':'#ff3366';
+    const icon=m.type==='golf'?'fa-car-battery':m.type==='bess'?'fa-building':'fa-bolt';
+    return`<div class="flex items-center gap-2 py-2 border-b border-white/5 cursor-pointer hover:bg-white/3 rounded px-1">
+      <div class="led lg"></div>
+      <i class="fas ${icon} text-blue-300 text-xs w-4"></i>
+      <div class="flex-1">
+        <div class="mono text-sm font-bold text-white">${name}</div>
+        <div class="mono text-xs text-slate-200">${m.loc}</div>
+      </div>
+      <div class="text-right">
+        <div class="os text-sm font-bold" style="color:${c}">${soc.toFixed(0)}%</div>
+        <div class="sbar-bg" style="width:60px;height:3px;margin-top:2px">
+          <div class="sbar" style="width:${soc}%;background:${c};height:3px"></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  if(gChart){gChart.data.datasets[0].data=GSOCS.map(v=>Math.max(5,Math.min(100,v+Math.random()*4-2)));gChart.update();}
+}
+</script>
+</body>
+</html>
