@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /intake.html
+
+Sitemap: https://coretect-microgrid.com/sitemap.xml
