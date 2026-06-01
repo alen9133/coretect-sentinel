@@ -1,208 +1,128 @@
-# CoreTect Sentinel — Global Energy Control Platform
-
-> **Remote asset monitoring & early warning system for ESS, microgrid, and EV battery fleets in Southeast Asia**
-
----
-
-## Overview
-
-CoreTect Sentinel is a full-stack IoT monitoring platform built for the Philippine and Southeast Asian energy storage market. It connects battery assets (ESS cabinets, golf cart batteries, commercial BESS) to a branded cloud dashboard with real-time telemetry, automated Telegram alerts, and cost-savings analytics.
-
-**Live Platform:** [coretect-microgrid.com](https://coretect-microgrid.com)  
-**Cloud Monitor:** [monitor.coretect-microgrid.com](https://monitor.coretect-microgrid.com)
+# CORETECT Sentinel — ESP32 固件使用说明
+## 硬件：HaaS506-ED1（ESP32-S3 MicroPython）
 
 ---
 
-## Architecture
+## 文件清单
 
-```
-Hardware (ESS / Golf Cart / BESS)
-        ↓  4G DTU Module (HTTP POST)
-ThingsBoard CE  ·  Singapore VPS (DigitalOcean)
-        ↓  JWT REST API
-┌───────────────────────────────────────┐
-│  intake.html  (Branded Dashboard)    │
-│  index.html   (Official Website)     │
-│  coretect_alert_bot.py  (Telegram)   │
-└───────────────────────────────────────┘
-        ↓
-Telegram Alerts  ·  Client Dashboard  ·  Public Website
+| 文件 | 说明 |
+|---|---|
+| `bms_common.py` | CRC16 + Modbus 帧工具（两个驱动都依赖） |
+| `jk_bms.py` | 极空（JK）BMS 驱动，115200 Modbus RTU |
+| `dy_bms.py` | 达锂（DY/KVMS）BMS 驱动，9600 Modbus RTU |
+| `main.py` | 主程序（4G联网 → BMS轮询 → MQTT上传） |
+
+---
+
+## 快速上手（5步）
+
+### 第1步：安装开发工具
+```bash
+pip install mpremote
 ```
 
----
-
-## File Structure
-
-```
-coretect-sentinel/
-├── web/
-│   ├── index.html              # Official website (bilingual EN/CN)
-│   └── intake.html             # Branded cloud dashboard (guest + client mode)
-├── server/
-│   ├── coretect_simulator.py   # Device data simulator (pre-DTU testing)
-│   └── coretect_alert_bot.py   # Telegram alert bot (v2.0 with cooldown)
-├── assets/
-│   ├── qr_website.html         # QR code — official website
-│   └── qr_repair.html          # QR code — repair service
-└── README.md
-```
-
----
-
-## Monitored Device Types
-
-| Device | Model | Location | Capacity |
-|--------|-------|----------|----------|
-| ESS-PH-001 | Solid-state LFP (QingTao) | Palawan Island | 64 kWh |
-| ESS-PH-002 | Solid-state LFP (QingTao) | Cebu Island | 30 kWh |
-| ESS-PH-003 | Solid-state LFP (QingTao) | Quezon Province | 48 kWh |
-| GOLF-001~005 | Golf cart battery pack | Cebu / Manila Golf Club | 10 kWh each |
-| BESS-COM-001 | Commercial BESS | Makati, Manila | 200 kWh |
-
----
-
-## Key Features
-
-### Client Dashboard (`intake.html`)
-- **Guest mode** — public overview, no login required
-- **Client mode** — JWT-authenticated, real-time device data
-- SOC / SOH / Power / Temperature — live 30s refresh
-- **Cost savings calculator** — per-country electricity rate (PHP / SGD / VND / MYR)
-- **Technical details panel** — collapsible cell voltages (C1–C16), temp sensors, BMS protection status
-- Alarm history, SOC trend chart, fleet KPI panel
-- Bilingual EN / 中文 toggle
-
-### Telegram Alert Bot (`coretect_alert_bot.py`)
-- Polls ThingsBoard every 60 seconds
-- **Level 1 alerts** (immediate): high temp, critical low SOC, severe cell imbalance, BMS protection triggered
-- **Level 2 alerts** (recommended): cell imbalance warning, low SOC, grid frequency abnormal, maintenance reminder
-- **2-hour cooldown** per alert — no repeated spam
-- Recovery notifications when alert clears
-- Daily 8:00 AM fleet summary report
-- All alert links route to branded dashboard (not ThingsBoard)
-
-### Data Simulator (`coretect_simulator.py`)
-- Simulates 9 devices × 28 telemetry fields each
-- Realistic SOC drift, cell voltage variance, temperature modelling
-- Sends data every 30 seconds via ThingsBoard HTTP API
-- Runs as background process (`nohup`) on VPS
-
----
-
-## Infrastructure
-
-| Component | Details |
-|-----------|---------|
-| VPS | DigitalOcean Singapore · 1GB RAM · Ubuntu 24.04 |
-| IoT Platform | ThingsBoard Community Edition (Docker) |
-| Database | PostgreSQL + Cassandra (inside Docker) |
-| Web Server | Nginx + BaoTa Panel |
-| Domain | coretect-microgrid.com (SSL) |
-| Alerts | Telegram Bot API |
-
----
-
-## API Reference
-
-### ThingsBoard Telemetry Ingestion
-```
-POST https://monitor.coretect-microgrid.com/api/v1/{ACCESS_TOKEN}/telemetry
-Content-Type: application/json
-
-{
-  "soc": 78.3,
-  "soh": 94.2,
-  "pack_voltage": 51.4,
-  "pack_current": -32.1,
-  "temperature_avg": 29.5,
-  "delta_v": 0.012,
-  "cell_v_01": 3.210,
-  ...
+### 第2步：修改 main.py 配置
+打开 `main.py`，找到 `CONFIG` 字典，填入：
+```python
+CONFIG = {
+    "tb_token": "你的ThingsBoard设备Access Token",
+    "bms_brand": "AUTO",   # 自动识别，或填 "JK" / "DY"
+    "device_id": "ESS-PH-001",
+    "location":  "Palawan Island",
+    # 其他保持默认即可
 }
 ```
 
-### ThingsBoard REST API (used by intake.html)
+### 第3步：确认 RS485 引脚
+ED1 的 RS485 是 uart2，TX/RX 引脚号对照板子丝印填入 CONFIG：
+```python
+"rs485_uart": 2,
+"rs485_tx":   17,   # 对照丝印修改
+"rs485_rx":   18,   # 对照丝印修改
 ```
-POST /api/auth/login          → JWT token
-GET  /api/tenant/devices      → device list
-GET  /api/plugins/telemetry/DEVICE/{id}/values/timeseries?keys=soc,soh,...
-```
 
----
-
-## Alert Thresholds
-
-| Parameter | Warning (L2) | Critical (L1) |
-|-----------|-------------|---------------|
-| Temperature | > 45°C | > 55°C |
-| Cell Delta-V | > 50mV | > 100mV |
-| SOC | < 20% | < 10% |
-| Cycle count | ≥ 3,000 | ≥ 4,500 |
-| Grid frequency | — | < 59.5 or > 60.5 Hz |
-
----
-
-## Setup Guide
-
-### 1. Server requirements
+### 第4步：上传文件到设备
+用 TypeC 线连接 ED1，然后：
 ```bash
-# Ubuntu 24.04 · Docker · Python 3 · Nginx
-pip install requests
+# 上传全部固件文件
+mpremote connect auto cp bms_common.py :bms_common.py
+mpremote connect auto cp jk_bms.py :jk_bms.py
+mpremote connect auto cp dy_bms.py :dy_bms.py
+mpremote connect auto cp main.py :main.py
 ```
 
-### 2. Run device simulator
+### 第5步：运行并查看日志
 ```bash
-# Edit DEVICE_TOKENS in coretect_simulator.py first
-nohup python3 /root/coretect/coretect_simulator.py > /root/coretect/simulator.log 2>&1 &
+mpremote connect auto run main.py
 ```
-
-### 3. Run alert bot
-```bash
-# Edit BOT_TOKEN, TB_PASS, CHAT_IDS in coretect_alert_bot.py first
-nohup python3 /root/coretect/coretect_alert_bot.py > /root/coretect/bot.log 2>&1 &
+正常输出示例：
 ```
-
-### 4. Deploy web files
-```
-Upload index.html and intake.html to:
-/www/wwwroot/coretect-microgrid.com/
+[08:30:01] CORETECT Sentinel 固件启动
+[08:30:01] 设备ID: ESS-PH-001
+[08:30:03] 正在等待 4G 联网...
+[08:30:18] 4G 已连接，IP: 10.x.x.x
+[08:30:19] AUTO 模式：尝试 JK 极空 BMS...
+[08:30:20] ✅ 检测到 JK 极空 BMS，SOC=85%
+[08:30:21] MQTT 已连接: 206.189.93.135
+[08:30:21] BMS 数据 | SOC:85% V:51.2V I:-32.1A ΔV:8mV
+[08:30:21] ✅ 数据已上传 ThingsBoard
 ```
 
 ---
 
-## Business Context
+## ThingsBoard 上的 JSON 字段说明
 
-CoreTect targets the Philippine off-grid and microgrid market:
-- 7,000+ islands, 400万+ households without reliable power
-- RA 11646 (Microgrid Systems Act) provides 20-year UCME subsidies
-- DOE 3rd-round CSP auction covers 167 unserved/underserved areas
-- Registered DTI business in Philippines (authorized technical distributor for QingTao solid-state batteries)
-
-**Revenue streams:**
-1. ESS hardware sales (QingTao solid-state LFP batteries)
-2. SaaS cloud monitoring (₱/month per device)
-3. Battery pack repair & BMS calibration services
-4. 4G DTU module sales & cloud integration
-
----
-
-## Roadmap
-
-- [ ] 4G DTU hardware arrival & first real device connection
-- [ ] SEC corporation registration (Philippines, 60/40 structure)
-- [ ] WhatsApp Business API integration
-- [ ] Monthly PDF report generation
-- [ ] AI predictive maintenance module (Phase 2)
-- [ ] DOE CSP bidding participation (as technical subcontractor)
-
----
-
-## Contact
-
-**CoreTect Global Technology**  
-Singapore Node | Philippines Operations  
-[coretect-microgrid.com](https://coretect-microgrid.com)
+| 字段 | 单位 | 说明 |
+|---|---|---|
+| `brand` | - | "JK" 或 "DY" |
+| `soc` | % | 剩余电量 |
+| `soh` | % | 电池健康度（DY暂无） |
+| `pack_voltage` | V | 总电压 |
+| `pack_current` | A | 电流（正=充电，负=放电） |
+| `power_w` | W | 功率（正=充电，负=放电） |
+| `temperature_avg` | °C | 平均温度 |
+| `temperature_max` | °C | 最高温度 |
+| `mos_temperature` | °C | MOS管温度 |
+| `delta_v` | V | 最大压差 |
+| `cell_count` | - | 电芯数量 |
+| `remain_ah` | Ah | 剩余容量 |
+| `cycle_count` | - | 循环次数 |
+| `charge_state` | 0/1 | 是否在充电 |
+| `discharge_state` | 0/1 | 是否在放电 |
+| `alarm_cell_ovp` | 0/1 | 单体过压告警 |
+| `alarm_cell_uvp` | 0/1 | 单体欠压告警 |
+| `alarm_over_current` | 0/1 | 过流告警 |
+| `alarm_over_temp` | 0/1 | 过温告警 |
+| `alarm_cell_imbalance` | 0/1 | 压差过大告警 |
+| `alarm_short_circuit` | 0/1 | 短路告警 |
+| `cell_v_01` ~ `cell_v_32` | V | 各单体电压 |
 
 ---
 
-*Built with ThingsBoard CE · Deployed on DigitalOcean Singapore*
+## 常见问题
+
+**Q：BMS 没有响应怎么办？**
+1. 检查 A/B 接线是否接反（极空是 A+、B-）
+2. 用万用表量 A-B 间电压，正常约 200-400mV
+3. 确认 BMS 从机地址（极空出厂默认1）
+4. 如果是 DY 达锂，地址固定是 0x81，不用配置
+
+**Q：MQTT 连接失败？**
+1. 确认 ThingsBoard 服务器的 1883 端口已开放
+2. 确认 Access Token 复制正确（在 ThingsBoard 设备详情里查看）
+3. 宝塔面板检查 Docker ThingsBoard 容器是否在运行
+
+**Q：4G 一直连不上？**
+1. 确认 SIM 卡已激活，插卡方向正确
+2. Globe/Smart SIM 卡均支持 B1/B3/B5/B8，ED1 完全兼容
+3. 检查天线是否拧紧
+
+---
+
+## 扩展：同时接逆变器
+
+ED1 有 RS232（uart1）和 RS485（uart2）两个串口：
+- uart2 (RS485) → BMS
+- uart1 (RS232) → 固德威/德业等逆变器（如果逆变器支持 RS232）
+
+或者通过 RS485 分路器把 uart2 分给两个设备（BMS 和逆变器用不同从机地址）。
